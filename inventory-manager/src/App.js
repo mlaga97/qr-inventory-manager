@@ -1,27 +1,26 @@
 import React from 'react'
 import './App.css';
 
-import UUIDGrabber from './UUIDGrabber'
+import QRCodeReader from './QRCodeReader'
 
-const ShowUUID = (props) => {
-  const {uuid} = props;
-  const {data} = uuid;
+const ShowData = (props) => {
+  const {data} = props;
 
   return <>{data}</>
 }
 
 function App() {
-  const [uuid, setUUID] = React.useState(0);
+  const [data, setData] = React.useState(0);
 
   const reset = () => {
-    setUUID(null);
+    setData(null);
   }
 
   return (
     <div className="App">
-      <UUIDGrabber callback={(uuid) => setUUID(uuid)} />
+      <QRCodeReader callback={(data) => {console.log(data); setData(data);}} />
       {
-        (uuid) ? <ShowUUID uuid={uuid} /> : 'Nope'
+        (data) ? <ShowData data={data} /> : 'Nope'
       }
       <button onClick={reset}>Reset</button>
     </div>

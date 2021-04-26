@@ -3,7 +3,7 @@ import React from 'react'
 import Webcam from 'react-webcam';
 import jsQR from 'jsqr';
 
-class UUIDGrabber extends React.Component {
+class QRCodeReader extends React.Component {
   constructor(props) {
     super(props);
 
@@ -49,7 +49,7 @@ class UUIDGrabber extends React.Component {
           this.drawLine(context2, code.location.bottomRightCorner, code.location.bottomLeftCorner, "#FF3B58");
           this.drawLine(context2, code.location.bottomLeftCorner, code.location.topLeftCorner, "#FF3B58");
 
-          this.props.callback(code);
+          this.props.callback(code.data);
         }
       }
     }
@@ -63,4 +63,4 @@ class UUIDGrabber extends React.Component {
   }
 }
 
-export default UUIDGrabber;
+export default QRCodeReader;

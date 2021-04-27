@@ -19,6 +19,23 @@ const QRReaderCard = (props) => <>
   </Card>
 </>
 
+const FixColumns = (i) => {
+  if (!Object.prototype.hasOwnProperty.call(i, 'label'))
+    i.label = '';
+
+  if (!Object.prototype.hasOwnProperty.call(i, 'labelPrinted'))
+    i.labelPrinted = false;
+
+  if (!Object.prototype.hasOwnProperty.call(i, 'location'))
+    i.location = '';
+
+  // TODO: Split in twain
+  if (!Object.prototype.hasOwnProperty.call(i, 'containerMakeModel'))
+    i.containerMakeModel = 'Unknown';
+
+  return i;
+}
+
 class RenderUUID extends React.Component {
   constructor(props) {
     super(props);
@@ -29,16 +46,14 @@ class RenderUUID extends React.Component {
   }
 
   componentDidUpdate() {
-    if (this.props.uuid != this.state._id) {
+    if (this.props.uuid !== this.state._id) {
       this.props.db.get(this.props.uuid).then((doc) => {
-        this.setState(doc)
+        this.setState(FixColumns(doc))
       }).catch((e) => {
-        if (e.reason == 'missing') {
-          this.setState({
+        if (e.reason === 'missing') {
+          this.setState(FixColumns({
             _id: this.props.uuid,
-            label: '',
-            labelPrinted: false,
-          })
+          }))
         } else {
           console.log(e);
           this.setState({
@@ -91,9 +106,31 @@ class RenderUUID extends React.Component {
                 <Form.Label>Label</Form.Label>
                 <Form.Control name='label' value={this.state.label} onChange={this.handleChange} />
               </Form.Group>
+
               <Form.Group controlId='labelPrinted'>
                 <Form.Check name='labelPrinted' label='Label Printed' value={this.state.labelPrinted} onChange={this.handleChange} />
               </Form.Group>
+
+              <Form.Group controlId='location'>
+                <Form.Label>Location</Form.Label>
+                <Form.Control name='location' value={this.state.location} onChange={this.handleChange} />
+              </Form.Group>
+
+              <Form.Group controlId='containerMakeModel'>
+                <Form.Label>Model</Form.Label>
+                <Form.Control name='containerMakeModel' value={this.state.containerMakeModel} onChange={this.handleChange} as='select'>
+                  <option>Unknown</option>
+                  <option>6-Quart Shoebox - Sterilite - 18518036</option>
+                  <option>Shipping Tote - Global Industrial - 257814</option>
+                  <option>Shipping Tote, FRC Branded - Orbis - FP243</option>
+                  <option>Tacklebox, Fixed - Darice - 1157-11</option>
+                  <option>Tacklebox, Adjustable - Plano - 3750 (Old)</option>
+                  <option>Tacklebox, Adjustable - Plano - 3750 (New)</option>
+                  <option>Tacklebox, Adjustable - UPC 035061512001</option>
+                  <option>Tacklebox, Small Fixed - Tool Bench Hardware - 206348</option>
+                </Form.Control>
+              </Form.Group>
+
               <Button variant='primary' type='submit'>Submit</Button>
             </Form>
           </Card.Text>

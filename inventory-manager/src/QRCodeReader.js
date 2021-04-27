@@ -1,5 +1,6 @@
-import React from 'react'
+import React from 'react';
 
+import {Row, Col} from 'react-bootstrap';
 import Webcam from 'react-webcam';
 import jsQR from 'jsqr';
 
@@ -44,10 +45,10 @@ class QRCodeReader extends React.Component {
         context2.putImageData(imageData, 0, 0);
 
         if (code) {
-          this.drawLine(context2, code.location.topLeftCorner, code.location.topRightCorner, "#FF3B58");
-          this.drawLine(context2, code.location.topRightCorner, code.location.bottomRightCorner, "#FF3B58");
-          this.drawLine(context2, code.location.bottomRightCorner, code.location.bottomLeftCorner, "#FF3B58");
-          this.drawLine(context2, code.location.bottomLeftCorner, code.location.topLeftCorner, "#FF3B58");
+          this.drawLine(context2, code.location.topLeftCorner, code.location.topRightCorner, '#FF3B58');
+          this.drawLine(context2, code.location.topRightCorner, code.location.bottomRightCorner, '#FF3B58');
+          this.drawLine(context2, code.location.bottomRightCorner, code.location.bottomLeftCorner, '#FF3B58');
+          this.drawLine(context2, code.location.bottomLeftCorner, code.location.topLeftCorner, '#FF3B58');
 
           this.props.callback(code.data);
         }
@@ -56,10 +57,14 @@ class QRCodeReader extends React.Component {
   }
 
   render() {
-    return <>
-      <Webcam ref={this.webcamRef} />
-      <canvas ref={this.canvasRef} />
-    </>;
+    return <Row>
+      <Col style={{width: '50%'}} >
+        <Webcam ref={this.webcamRef} style={{width: '100%'}} />
+      </Col>
+      <Col style={{width: '50%'}} >
+        <canvas ref={this.canvasRef} style={{width: '100%'}} />
+      </Col>
+    </Row>
   }
 }
 

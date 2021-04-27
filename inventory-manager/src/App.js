@@ -1,8 +1,9 @@
 import React from 'react';
 
-import {Navbar, Card, Container, Row, Form, Button, Table} from 'react-bootstrap';
+import {Navbar, Card, Container, Row, Form, Button, ButtonGroup, Table} from 'react-bootstrap';
 import PouchDB from 'pouchdb';
 import CSVReader from 'react-csv-reader';
+import CsvDownloader from 'react-csv-downloader';
 
 import QRCodeReader from './QRCodeReader';
 
@@ -34,6 +35,9 @@ const FixColumns = (i) => {
   if (!Object.prototype.hasOwnProperty.call(i, 'containerMakeModel'))
     i.containerMakeModel = 'Unknown';
 
+  if (!Object.prototype.hasOwnProperty.call(i, 'comments'))
+    i.comments = 'Unknown';
+
   return i;
 }
 
@@ -46,11 +50,14 @@ class RenderUUID extends React.Component {
     this.handleSubmit = this.handleSubmit.bind(this);
   }
 
-  componentDidUpdate() {
+  update() {
+    console.log([this.props.uuid, this.state._id])
     if (this.props.uuid !== this.state._id) {
       this.props.db.get(this.props.uuid).then((doc) => {
+        console.log(doc)
         this.setState(FixColumns(doc))
       }).catch((e) => {
+        console.log(e)
         if (e.reason === 'missing') {
           this.setState(FixColumns({
             _id: this.props.uuid,
@@ -66,6 +73,14 @@ class RenderUUID extends React.Component {
     }
   }
 
+  componentDidMount() {
+    this.update();
+  }
+
+  componentDidUpdate() {
+    this.update();
+  }
+
   // https://reactjs.org/docs/forms.html#handling-multiple-inputs
   handleChange(e) {
     const {target} = e;
@@ -77,6 +92,8 @@ class RenderUUID extends React.Component {
 
   handleSubmit(e) {
     e.preventDefault();
+
+    console.log(this.state)
 
     this.props.db.put(this.state).then((a) => {
       this.setState({
@@ -90,12 +107,16 @@ class RenderUUID extends React.Component {
   }
 
   render() {
+    console.log('Test')
+    console.log(this.state)
     if (!this.state._id)
       return null;
 
+    console.log('Test2')
     if (this.state.error)
       return this.state.error.reason;
 
+    console.log('Test3')
     return <>
       <Card style={{'width': '100%', 'margin': '10px'}} >
         <Card.Header>Editing {this.props.uuid}</Card.Header>
@@ -156,24 +177,40 @@ const ContainerEntry = ({row, handleClick}) => {
   </tr>;
 }
 
-const ContainerList = ({rows, handleClick}) => <Table>
-  <thead>
-    <tr>
-      <th>UUID</th>
-      <th>Label</th>
-      <th>Label Printed</th>
-      <th>Location</th>
-      <th>Make/Model</th>
-    </tr>
-  </thead>
-  <tbody>
-    {
-      rows.map((row) => {
-        return <ContainerEntry row={row} handleClick={handleClick} />
-      })
-    }
-  </tbody>
-</Table>
+const ContainerList = ({rows, handleClick}) => <div>
+  <Table>
+    <thead>
+      <tr>
+        <th>UUID</th>
+        <th>Label</th>
+        <th>Label Printed</th>
+        <th>Location</th>
+        <th>Make/Model</th>
+      </tr>
+    </thead>
+    <tbody>
+      {
+        rows.map((row) => {
+          return <ContainerEntry row={row} handleClick={handleClick} />
+        })
+      }
+    </tbody>
+  </Table>
+  <CsvDownloader
+    filename='ahhh'
+    datas={rows}
+    columns={[
+      {id: '_id', displayName: 'UUID'},
+      {id: 'label', displayName: 'Label'},
+      {id: 'labelPrinted', displayName: 'Printed'},
+      {id: 'location', displayName: 'Location'},
+      {id: 'containerMakeModel', displayName: 'Make/Model'},
+      {id: 'comments', displayName: 'Comments'},
+      {id: '_rev', displayName: 'Revision'},
+    ]}
+    text='DOWNLOAD'
+  />
+</div>;
 
 class RenderTable extends React.Component {
   update() {
@@ -254,16 +291,46 @@ class App extends React.Component {
       'mode': 'default',
     }
 
-    this.db = new PouchDB('testDB');
+    this.db = new PouchDB('https://couchdb.mlaga97.space/uuid-inventory-db');
+    this.api = new PouchDB('https://couchdb.mlaga97.space/uuid-inventory-api');
   }
 
-  reset = () => {
-    this.update(null);
+  componentDidMount() {
+
+    // Get all changes from the API
+    this.api.changes({
+      since: 'now',
+      live: true,
+      include_docs: true,
+    }).on('change', (change) => {
+      if (change.deleted) {
+        // TODO: Handle
+      } else {
+        console.log(change.doc)
+      }
+    }).on('error', (err) => {
+      console.log(err);
+    });
+
   }
 
-  update = (uuid) => {
-    if (uuid !== this.state.uuid) {
-      this.setState({'data': uuid});
+  setEditing = (uuid) => {
+    this.setState({
+      mode: 'editing',
+      currentUUID: uuid,
+    });
+  }
+
+  handleScan = (uuid) => {
+    if (this.state.mode === 'default')
+      this.setEditing(uuid);
+
+    if (this.state.mode === 'bulkScan') {
+      console.log(uuid);
+      console.log(this.state.bulkScan);
+      this.setState({
+        bulkScan: {[uuid]: new Date(), ...this.state.bulkScan},
+      })
     }
   }
 
@@ -284,15 +351,51 @@ class App extends React.Component {
 
         <Container style={{'margin': '40px'}} >
           <Row>
-            <QRReaderCard callback={this.update} />
-            <RenderUUID uuid={this.state.data} callback={this.update} db={this.db} />
-            <RenderTable uuid={this.state.data} callback={this.update} db={this.db} />
-            <CSVTest />
+            <QRReaderCard callback={this.handleScan} />
+            <ModeSelector mode={this.state.mode} setMode={(e) => this.setState({mode: e})} />
+
+            {(this.state.mode === 'editing') ? <RenderUUID uuid={this.state.currentUUID} callback={this.setEditing} db={this.db} /> : null}
+
+            {/*(this.state.mode === 'bulkScan') ? <BulkEdit uuids={Object.keys(this.state.bulkScan)} db={this.db} /> : null*/}
+
+            <RenderTable callback={this.setEditing} db={this.db} />
+
+            {(this.state.mode === 'csvImport') ? <CSVTest /> : null}
           </Row>
         </Container>
       </div>
     );
   }
 }
+
+const ModeSelector = ({mode, setMode}) => <Card style={{'width': '100%', 'margin': '10px'}} >
+  <Card.Header>Mode Selection</Card.Header>
+  <Card.Body>
+    <Card.Text>
+      <ButtonGroup>
+        {
+          [
+            {
+              text: 'Single Scan',
+              mode: 'default',
+            },
+            {
+              text: 'Editing',
+              mode: 'editing',
+            },
+            {
+              text: 'Bulk Scan',
+              mode: 'bulkScan',
+            },
+            {
+              text: 'CSV Import',
+              mode: 'csvImport',
+            }
+          ].map((val) => <Button variant='outline-primary' active={val.mode === mode} onClick={() => setMode(val.mode)} >{val.text}</Button>)
+        }
+      </ButtonGroup>
+    </Card.Text>
+  </Card.Body>
+</Card>;
 
 export default App;

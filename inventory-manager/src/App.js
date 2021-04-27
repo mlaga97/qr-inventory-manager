@@ -1,7 +1,8 @@
 import React from 'react';
 
-import {Navbar, Card, Container, Row, Col, Form, Button, Table} from 'react-bootstrap';
+import {Navbar, Card, Container, Row, Form, Button, Table} from 'react-bootstrap';
 import PouchDB from 'pouchdb';
+import CSVReader from 'react-csv-reader';
 
 import QRCodeReader from './QRCodeReader';
 
@@ -76,7 +77,6 @@ class RenderUUID extends React.Component {
 
   handleSubmit(e) {
     e.preventDefault();
-    const json = JSON.stringify(this.state);
 
     this.props.db.put(this.state).then((a) => {
       this.setState({
@@ -140,12 +140,49 @@ class RenderUUID extends React.Component {
   }
 }
 
+const ContainerEntry = ({row, handleClick}) => {
+  if (!row)
+    return null;
+
+  if (!row._id)
+    return null;
+
+  return <tr onClick={() => handleClick(row._id)}>
+    <td>{row._id.substring(0,4) + '-' + row._id.substring(4,13)}</td>
+    <td>{row.label}</td>
+    <td>{(row.labelPrinted) ? 'Yes' : 'No'}</td>
+    <td>{row.location}</td>
+    <td>{row.containerMakeModel}</td>
+  </tr>;
+}
+
+const ContainerList = ({rows, handleClick}) => <Table>
+  <thead>
+    <tr>
+      <th>UUID</th>
+      <th>Label</th>
+      <th>Label Printed</th>
+      <th>Location</th>
+      <th>Make/Model</th>
+    </tr>
+  </thead>
+  <tbody>
+    {
+      rows.map((row) => {
+        return <ContainerEntry row={row} handleClick={handleClick} />
+      })
+    }
+  </tbody>
+</Table>
+
 class RenderTable extends React.Component {
   update() {
     this.props.db.allDocs({
       include_docs: true,
     }).then((data) => {
-      this.setState(data);
+      this.setState({
+        rows: data.rows.map((e) => e.doc) // Extract just the data itself
+      });
     }).catch((e) => {
       console.log(e);
     });
@@ -163,35 +200,44 @@ class RenderTable extends React.Component {
     if (!this.state)
       return null;
 
+    return <Card style={{'width': '100%', 'margin': '10px'}} >
+      <Card.Header>All Inventory Items</Card.Header>
+      <Card.Body>
+        <Card.Text>
+          <ContainerList rows={this.state.rows} handleClick={this.props.callback} />
+        </Card.Text>
+      </Card.Body>
+    </Card>;
+  }
+}
+
+class CSVTest extends React.Component {
+  constructor(props) {
+    super(props);
+
+    this.state = {
+      rows: [],
+    }
+  }
+
+  render() {
     return <>
       <Card style={{'width': '100%', 'margin': '10px'}} >
         <Card.Header>All Inventory Items</Card.Header>
         <Card.Body>
           <Card.Text>
-            <Table>
-              <thead>
-                <tr>
-                  <th>UUID</th>
-                  <th>Label</th>
-                  <th>Label Printed</th>
-                  <th>Content</th>
-                  <th>Location</th>
-                  <th>Type</th>
-                  <th>Make/Model</th>
-                </tr>
-              </thead>
-              <tbody>
-                {
-                  this.state.rows.map((row) => <>
-                    <tr onClick={() => this.props.callback(row.doc._id)}>
-                      <td>{row.doc._id}</td>
-                      <td>{row.doc.label}</td>
-                      <td>{(row.doc.labelPrinted) ? 'Yes' : 'No'}</td>
-                    </tr>
-                  </>)
-                }
-              </tbody>
-            </Table>
+            <ContainerList rows={this.state.rows} handleClick={this.props.callback} />
+            <CSVReader onFileLoaded={(data, fileInfo) => {
+              this.setState({
+                rows: data.slice(1).map((e) => ({
+                  _id: e[0],
+                  label: e[1],
+                  labelPrinted: e[2],
+                  location: e[3],
+                  containerMakeModel: e[4],
+                }))
+              });
+            }} />
           </Card.Text>
         </Card.Body>
       </Card>
@@ -205,9 +251,10 @@ class App extends React.Component {
 
     this.state = {
       'data': null,
+      'mode': 'default',
     }
 
-    this.db =  new PouchDB('testDB');
+    this.db = new PouchDB('testDB');
   }
 
   reset = () => {
@@ -215,7 +262,7 @@ class App extends React.Component {
   }
 
   update = (uuid) => {
-    if (uuid != this.state.uuid) {
+    if (uuid !== this.state.uuid) {
       this.setState({'data': uuid});
     }
   }
@@ -229,6 +276,7 @@ class App extends React.Component {
               src='/logo192.png'
               width='30'
               height='30'
+              alt='Logo'
             />{' '}
             Inventory Manager
           </Navbar.Brand>
@@ -239,9 +287,9 @@ class App extends React.Component {
             <QRReaderCard callback={this.update} />
             <RenderUUID uuid={this.state.data} callback={this.update} db={this.db} />
             <RenderTable uuid={this.state.data} callback={this.update} db={this.db} />
+            <CSVTest />
           </Row>
         </Container>
-
       </div>
     );
   }

@@ -11,3 +11,19 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+.card {
+  width: 100%;
+  margin: 10px;
+  margin-bottom: 5px;
+}
+
+.hideOnMobile {
+  display: block;
+}
+
+@media screen and (max-width: 768px) {
+  .hideOnMobile {
+    display: none;
+  }
+}

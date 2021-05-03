@@ -44,7 +44,7 @@ class QRCodeReader extends React.Component {
 
         context2.putImageData(imageData, 0, 0);
 
-        if (code) {
+        if (code && code.data !== '') {
           this.drawLine(context2, code.location.topLeftCorner, code.location.topRightCorner, '#FF3B58');
           this.drawLine(context2, code.location.topRightCorner, code.location.bottomRightCorner, '#FF3B58');
           this.drawLine(context2, code.location.bottomRightCorner, code.location.bottomLeftCorner, '#FF3B58');
@@ -59,7 +59,7 @@ class QRCodeReader extends React.Component {
   render() {
     return <Row>
       <Col style={{width: '50%'}} >
-        <Webcam ref={this.webcamRef} style={{width: '100%'}} />
+        <Webcam ref={this.webcamRef} style={{width: '100%'}} audio={false} videoConstraints={{facingMode: 'environment'}} />
       </Col>
       <Col style={{width: '50%'}} >
         <canvas ref={this.canvasRef} style={{width: '100%'}} />

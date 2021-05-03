@@ -1,7 +1,7 @@
 import React from 'react';
+import { connect } from 'react-redux';
 
 import {Navbar, Card, Container, Row, Form, Button, ButtonGroup, Table} from 'react-bootstrap';
-import PouchDB from 'pouchdb';
 import CSVReader from 'react-csv-reader';
 import CsvDownloader from 'react-csv-downloader';
 
@@ -11,7 +11,7 @@ import './App.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 const QRReaderCard = (props) => <>
-  <Card style={{'width': '100%', 'margin': '10px'}} >
+  <Card>
     <Card.Header>Cam View</Card.Header>
     <Card.Body>
       <Card.Text>
@@ -20,162 +20,6 @@ const QRReaderCard = (props) => <>
     </Card.Body>
   </Card>
 </>
-
-const FixColumns = (i) => {
-  if (!Object.prototype.hasOwnProperty.call(i, 'label'))
-    i.label = '';
-
-  if (!Object.prototype.hasOwnProperty.call(i, 'labelPrinted'))
-    i.labelPrinted = false;
-
-  if (!Object.prototype.hasOwnProperty.call(i, 'location'))
-    i.location = '';
-
-  // TODO: Split in twain
-  if (!Object.prototype.hasOwnProperty.call(i, 'containerMakeModel'))
-    i.containerMakeModel = 'Unknown';
-
-  if (!Object.prototype.hasOwnProperty.call(i, 'comments'))
-    i.comments = 'Unknown';
-
-  return i;
-}
-
-class RenderUUID extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {}
-
-    this.handleChange = this.handleChange.bind(this);
-    this.handleSubmit = this.handleSubmit.bind(this);
-  }
-
-  update() {
-    console.log([this.props.uuid, this.state._id])
-    if (this.props.uuid !== this.state._id) {
-      this.props.db.get(this.props.uuid).then((doc) => {
-        console.log(doc)
-        this.setState(FixColumns(doc))
-      }).catch((e) => {
-        console.log(e)
-        if (e.reason === 'missing') {
-          this.setState(FixColumns({
-            _id: this.props.uuid,
-          }))
-        } else {
-          console.log(e);
-          this.setState({
-            _id: this.props.uuid,
-            error: e,
-          })
-        }
-      });
-    }
-  }
-
-  componentDidMount() {
-    this.update();
-  }
-
-  componentDidUpdate() {
-    this.update();
-  }
-
-  // https://reactjs.org/docs/forms.html#handling-multiple-inputs
-  handleChange(e) {
-    const {target} = e;
-    const value = target.type === 'checkbox' ? target.checked : target.value;
-    const {name} = target;
-
-    this.setState({[name]: value});
-  }
-
-  handleSubmit(e) {
-    e.preventDefault();
-
-    console.log(this.state)
-
-    this.props.db.put(this.state).then((a) => {
-      this.setState({
-        _rev: a.rev,
-      });
-    }).catch((e) => {
-      console.log(e);
-    });
-
-    this.props.callback(this.props.uuid);
-  }
-
-  render() {
-    console.log('Test')
-    console.log(this.state)
-    if (!this.state._id)
-      return null;
-
-    console.log('Test2')
-    if (this.state.error)
-      return this.state.error.reason;
-
-    console.log('Test3')
-    return <>
-      <Card style={{'width': '100%', 'margin': '10px'}} >
-        <Card.Header>Editing {this.props.uuid}</Card.Header>
-        <Card.Body>
-          <Card.Text>
-            <Form onSubmit={this.handleSubmit} >
-              <Form.Group controlId='label'>
-                <Form.Label>Label</Form.Label>
-                <Form.Control name='label' value={this.state.label} onChange={this.handleChange} />
-              </Form.Group>
-
-              <Form.Group controlId='labelPrinted'>
-                <Form.Check name='labelPrinted' label='Label Printed' value={this.state.labelPrinted} onChange={this.handleChange} />
-              </Form.Group>
-
-              <Form.Group controlId='location'>
-                <Form.Label>Location</Form.Label>
-                <Form.Control name='location' value={this.state.location} onChange={this.handleChange} />
-              </Form.Group>
-
-              <Form.Group controlId='containerMakeModel'>
-                <Form.Label>Model</Form.Label>
-                <Form.Control name='containerMakeModel' value={this.state.containerMakeModel} onChange={this.handleChange} as='select'>
-                  <option>Unknown</option>
-                  <option>6-Quart Shoebox - Sterilite - 18518036</option>
-                  <option>Shipping Tote - Global Industrial - 257814</option>
-                  <option>Shipping Tote, FRC Branded - Orbis - FP243</option>
-                  <option>Tacklebox, Fixed - Darice - 1157-11</option>
-                  <option>Tacklebox, Adjustable - Plano - 3750 (Old)</option>
-                  <option>Tacklebox, Adjustable - Plano - 3750 (New)</option>
-                  <option>Tacklebox, Adjustable - UPC 035061512001</option>
-                  <option>Tacklebox, Small Fixed - Tool Bench Hardware - 206348</option>
-                </Form.Control>
-              </Form.Group>
-
-              <Button variant='primary' type='submit'>Submit</Button>
-            </Form>
-          </Card.Text>
-        </Card.Body>
-      </Card>
-    </>
-  }
-}
-
-const ContainerEntry = ({row, handleClick}) => {
-  if (!row)
-    return null;
-
-  if (!row._id)
-    return null;
-
-  return <tr onClick={() => handleClick(row._id)}>
-    <td>{row._id.substring(0,4) + '-' + row._id.substring(4,13)}</td>
-    <td>{row.label}</td>
-    <td>{(row.labelPrinted) ? 'Yes' : 'No'}</td>
-    <td>{row.location}</td>
-    <td>{row.containerMakeModel}</td>
-  </tr>;
-}
 
 const ContainerList = ({rows, handleClick}) => <div>
   <Table>
@@ -212,17 +56,164 @@ const ContainerList = ({rows, handleClick}) => <div>
   />
 </div>;
 
-class RenderTable extends React.Component {
-  update() {
-    this.props.db.allDocs({
-      include_docs: true,
-    }).then((data) => {
+const QueueCard = ({db, queue, handleClear, handleCommitQueue, select}) => (
+  <Card>
+    <Card.Header>UUID Queue</Card.Header>
+    <Card.Body>
+      <Card.Text>
+        <Table>
+          <tbody>
+            {
+              Object.keys(queue).map((key) => (
+                <tr onClick={() => select(key)}>
+                  <td>{key}</td>
+                  <td>{(db[key]) ? 'Yes' : 'No'}</td>
+                </tr>
+              ))
+            }
+          </tbody>
+        </Table>
+
+        <ButtonGroup>
+          <Button variant='outline-primary' onClick={handleCommitQueue}>Commit Queue</Button>
+          <Button variant='outline-danger' onClick={handleClear}>Clear Queue</Button>
+        </ButtonGroup>
+      </Card.Text>
+    </Card.Body>
+  </Card>
+);
+
+const ContainerEntry = ({row, handleClick}) => {
+  if (!row)
+    return null;
+
+  if (!row._id)
+    return null;
+
+  return <tr onClick={() => handleClick(row._id)}>
+    <td>{row._id.substring(0,4) + '-' + row._id.substring(4,13)}</td>
+    <td>{row.label}</td>
+    <td>{(row.labelPrinted) ? 'Yes' : 'No'}</td>
+    <td>{row.location}</td>
+    <td>{row.containerMakeModel}</td>
+  </tr>;
+}
+
+const DBEntryHeader = () => (
+  <tr>
+    <td>UUID</td>
+    <td>Label</td>
+    <td>Location</td>
+    <td>Container Make/Model</td>
+    <td>Label Printed</td>
+  </tr>
+);
+
+const DBEntry = ({entry, handleClick}) => (
+  <tr onClick={handleClick}>
+    <td>{entry._id}</td>
+    <td>{entry.label}</td>
+    <td>{entry.location}</td>
+    <td>{entry.containerMakeModel}</td>
+    <td>{entry.labelPrinted ? 'Yes' : 'No'}</td>
+  </tr>
+);
+
+const DBDumper = ({db, handleClick}) => (
+  <Card className='hideOnMobile'>
+    <Card.Header>Database Dump</Card.Header>
+    <Card.Body>
+      <Card.Text>
+        <CsvDownloader
+          filename='ahhh'
+          datas={Object.keys(db).map(uuid => db[uuid])}
+          columns={[
+            {id: '_id', displayName: 'UUID'},
+            {id: 'label', displayName: 'Label'},
+            {id: 'labelPrinted', displayName: 'Printed'},
+            {id: 'location', displayName: 'Location'},
+            {id: 'containerMakeModel', displayName: 'Make/Model'},
+            {id: 'comments', displayName: 'Comments'},
+            {id: '_rev', displayName: 'Revision'},
+          ]}
+          text='DOWNLOAD'
+        />
+        <Table>
+          <thead>
+            <DBEntryHeader />
+          </thead>
+          <tbody>
+            {
+              Object.keys(db).map(key => <DBEntry entry={db[key]} handleClick={() => handleClick(key)} />)
+            }
+          </tbody>
+        </Table>
+      </Card.Text>
+    </Card.Body>
+  </Card>
+);
+
+class EditCard extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      staleRev: false,
+    };
+  }
+
+  actuallyUpdate = () => {
+    // Update
+    if (this.props.db[this.props.active]) {
       this.setState({
-        rows: data.rows.map((e) => e.doc) // Extract just the data itself
+        active: this.props.active,
+        data: {
+          _id: this.props.active,
+          label: '',
+          labelPrinted: false,
+          location: '',
+          containerMakeModel: 'Unknown',
+          comment: '',
+          ...this.props.db[this.props.active]
+        },
+        staleRev: false,
+        submitted: false,
       });
-    }).catch((e) => {
-      console.log(e);
-    });
+    } else {
+      this.setState({
+        active: this.props.active,
+        data: {
+          _id: this.props.active,
+          label: '',
+          labelPrinted: false,
+          location: '',
+          containerMakeModel: 'Unknown',
+          comment: '',
+        },
+        staleRev: false,
+        submitted: false,
+      });
+    }
+  }
+
+  update() {
+    if (this.props.active === this.state.active && !this.props.submitted) {
+      // Check for stale
+
+      if (!this.state.staleRev && this.state.data && this.props.db && this.props.db[this.props.active])
+        if (this.state.data._rev !== this.props.db[this.props.active]._rev)
+          if (this.state.submitted) {
+            this.actuallyUpdate();
+          } else {
+            console.log('Stale!');
+            this.setState({
+              staleRev: true,
+            })
+          }
+
+      return;
+    }
+
+    this.actuallyUpdate();
   }
 
   componentDidMount() {
@@ -233,114 +224,212 @@ class RenderTable extends React.Component {
     this.update();
   }
 
+  // https://reactjs.org/docs/forms.html#handling-multiple-inputs
+  handleChange = (e) => {
+    const {target} = e;
+    const value = target.type === 'checkbox' ? target.checked : target.value;
+    const {name} = target;
+
+    //this.setState({[name]: value});
+    this.setState({
+      data: Object.assign({}, this.state.data, {
+        [name]: value,
+      })
+    });
+  }
+
+  handleSubmit = (e) => {
+    e.preventDefault();
+    this.props.handleSubmit([
+      this.state.data,
+    ])
+    this.setState({
+      submitted: true,
+    });
+  }
+
   render() {
-    if (!this.state)
+    if (!this.state.active)
       return null;
 
-    return <Card style={{'width': '100%', 'margin': '10px'}} >
-      <Card.Header>All Inventory Items</Card.Header>
-      <Card.Body>
-        <Card.Text>
-          <ContainerList rows={this.state.rows} handleClick={this.props.callback} />
-        </Card.Text>
-      </Card.Body>
-    </Card>;
-  }
-}
+    if (!this.state.data)
+      return null;
 
-class CSVTest extends React.Component {
-  constructor(props) {
-    super(props);
+    console.log(this.state.data);
 
-    this.state = {
-      rows: [],
-    }
-  }
-
-  render() {
-    return <>
-      <Card style={{'width': '100%', 'margin': '10px'}} >
-        <Card.Header>All Inventory Items</Card.Header>
+    return (
+      <Card>
+        <Card.Header>Editing {this.props.active}</Card.Header>
         <Card.Body>
           <Card.Text>
-            <ContainerList rows={this.state.rows} handleClick={this.props.callback} />
-            <CSVReader onFileLoaded={(data, fileInfo) => {
-              this.setState({
-                rows: data.slice(1).map((e) => ({
-                  _id: e[0],
-                  label: e[1],
-                  labelPrinted: e[2],
-                  location: e[3],
-                  containerMakeModel: e[4],
-                }))
-              });
-            }} />
+            <Form onSubmit={this.handleSubmit}>
+              <Form.Group controlId='label'>
+                <Form.Label>Label</Form.Label>
+                <Form.Control name='label' value={this.state.data.label} onChange={this.handleChange} />
+              </Form.Group>
+
+              <Form.Group controlId='labelPrinted'>
+                <Form.Check name='labelPrinted' label='Label Printed' value={this.state.data.labelPrinted} onChange={this.handleChange} />
+              </Form.Group>
+
+              <Form.Group controlId='location'>
+                <Form.Label>Location</Form.Label>
+                <Form.Control name='location' value={this.state.data.location} onChange={this.handleChange} />
+              </Form.Group>
+
+              <Form.Group controlId='containerMakeModel'>
+                <Form.Label>Model</Form.Label>
+                <Form.Control name='containerMakeModel' value={this.state.data.containerMakeModel} as='select' onChange={this.handleChange} >
+                  {
+                    MakeModelOptions.map(option => <option>{option}</option>)
+                  }
+                </Form.Control>
+              </Form.Group>
+              
+              <ButtonGroup>
+                {
+                  (this.state.staleRev || this.state.submitted) ? 
+                    <Button variant='danger'>Refresh</Button> :
+                    <Button variant='primary' type='submit'>Submit</Button>
+                }
+              </ButtonGroup>
+            </Form>
           </Card.Text>
         </Card.Body>
       </Card>
-    </>;
+    )
   }
 }
 
-class App extends React.Component {
-  constructor(props) {
-    super(props);
+const BulkLabel = ({handleSubmit}) => (
+  <Card>
+    <Card.Header>Bulk Apply</Card.Header>
+    <Card.Body>
+      <Card.Text>
+        <Form onSubmit={(e) => {e.preventDefault(); console.log(e.target[0]); handleSubmit(e.target[0].name, e.target[0].value);}} >
+          <Form.Group controlId='label'>
+            <Form.Label>Label</Form.Label>
+            <Form.Control name='label' />
+          </Form.Group>
+          <Button variant='primary' type='submit'>Submit</Button>
+        </Form>
+      </Card.Text>
+    </Card.Body>
+  </Card>
+);
 
-    this.state = {
-      'data': null,
-      'mode': 'default',
-    }
+const BulkLocation = ({handleSubmit}) => (
+  <Card>
+    <Card.Header>Bulk Apply</Card.Header>
+    <Card.Body>
+      <Card.Text>
+        <Form onSubmit={(e) => {e.preventDefault(); console.log(e.target[0]); handleSubmit(e.target[0].name, e.target[0].value);}} >
+          <Form.Group controlId='location'>
+            <Form.Label>Location</Form.Label>
+            <Form.Control name='location' />
+          </Form.Group>
+          <Button variant='primary' type='submit'>Submit</Button>
+        </Form>
+      </Card.Text>
+    </Card.Body>
+  </Card>
+);
 
-    this.db = new PouchDB('https://couchdb.mlaga97.space/uuid-inventory-db');
-    this.api = new PouchDB('https://couchdb.mlaga97.space/uuid-inventory-api');
-  }
+const BulkMakeModel = ({handleSubmit}) => (
+  <Card>
+    <Card.Header>Bulk Apply</Card.Header>
+    <Card.Body>
+      <Card.Text>
+        <Form onSubmit={(e) => {e.preventDefault(); console.log(e.target[0]); handleSubmit(e.target[0].name, e.target[0].value);}} >
+          <Form.Group controlId='containerMakeModel'>
+            <Form.Label>Make and Model</Form.Label>
+            <Form.Control name='containerMakeModel' as='select'>
+              {
+                MakeModelOptions.map(option => <option>{option}</option>)
+              }
+            </Form.Control>
+          </Form.Group>
+          <Button variant='primary' type='submit'>Submit</Button>
+        </Form>
+      </Card.Text>
+    </Card.Body>
+  </Card>
+);
 
-  componentDidMount() {
+const MakeModelOptions = [
+  'Unknown',
+  '6-Quart Shoebox - Sterilite - 18518036',
+  'Shipping Tote - Global Industrial - 257814',
+  'Shipping Tote, FRC Branded - Orbis - FP243',
+  'Tacklebox, Fixed - Darice - 1157-11',
+  'Tacklebox, Adjustable - Plano - 3750 (Old)',
+  'Tacklebox, Adjustable - Plano - 3750 (New)',
+  'Tacklebox, Adjustable - UPC 035061512001',
+  'Tacklebox, Small Fixed - Tool Bench Hardware - 206348',
+  'Cube Organizer Box - Home Depot 523607',
+  '48x18 Wire Shelf - Home Depot 525441',
+]
 
-    // Get all changes from the API
-    this.api.changes({
-      since: 'now',
-      live: true,
-      include_docs: true,
-    }).on('change', (change) => {
-      if (change.deleted) {
-        // TODO: Handle
-      } else {
-        console.log(change.doc)
+
+const buildTree = (location, entries, db) => {
+  let output = {}
+
+  entries.map((entry) => {
+    if (entry[1] === location)
+      output[entry[0]] = {
+        contains: buildTree(entry[0], entries, db),
+        ...db[entry[0]]
       }
-    }).on('error', (err) => {
-      console.log(err);
-    });
+  })
 
-  }
+  return output;
+}
 
-  setEditing = (uuid) => {
-    this.setState({
-      mode: 'editing',
-      currentUUID: uuid,
-    });
-  }
+const HierarchialDumper = ({db, handleClick}) => {
+  const entries = Object.keys(db).map(uuid => [uuid, db[uuid].location]);
+  const rawLocations = Object.keys(db).map(uuid => db[uuid].location);
 
-  handleScan = (uuid) => {
-    if (this.state.mode === 'default')
-      this.setEditing(uuid);
-
-    if (this.state.mode === 'bulkScan') {
-      console.log(uuid);
-      console.log(this.state.bulkScan);
-      this.setState({
-        bulkScan: {[uuid]: new Date(), ...this.state.bulkScan},
-      })
+  let roots = {}
+  rawLocations.map(location => {
+    if (!(location in db)) {
+      roots[location] = buildTree(location, entries, db);
     }
+  });
+
+  console.log(roots);
+
+  return null;
+}
+
+const emptyUUID = {
+};
+
+class App extends React.Component {
+  componentDidMount() {
+    this.props.dispatch({type: 'DB_UPDATE_REQUESTED'});
   }
 
-  render = () => {
+  uuidScanned = (uuid) => this.props.dispatch({type: 'UUID_SCANNED', data: uuid});
+  clearQueue = () => this.props.dispatch({type: 'CLEAR_UUID_QUEUE'});
+  bulkCommit = () => this.props.dispatch({type: 'COMMIT_UUID_QUEUE'});
+  commit = (data) => this.props.dispatch({type: 'COMMIT_UUIDS_REQUESTED', data: data})
+
+  bulkApply = (key, value) => {
+    this.commit(Object.keys(this.props.queue).map((a) => {
+      return Object.assign({}, this.props.db[a] || emptyUUID, {
+        _id: a,
+        [key]: value,
+      })
+    }));
+  }
+
+  render() {
     return (
       <div className="App">
         <Navbar bg='dark' variant='dark'>
           <Navbar.Brand>
             <img
-              src='/logo192.png'
+              src='/logo.svg'
               width='30'
               height='30'
               alt='Logo'
@@ -349,18 +438,16 @@ class App extends React.Component {
           </Navbar.Brand>
         </Navbar>
 
-        <Container style={{'margin': '40px'}} >
+        <Container>
           <Row>
-            <QRReaderCard callback={this.handleScan} />
-            <ModeSelector mode={this.state.mode} setMode={(e) => this.setState({mode: e})} />
-
-            {(this.state.mode === 'editing') ? <RenderUUID uuid={this.state.currentUUID} callback={this.setEditing} db={this.db} /> : null}
-
-            {/*(this.state.mode === 'bulkScan') ? <BulkEdit uuids={Object.keys(this.state.bulkScan)} db={this.db} /> : null*/}
-
-            <RenderTable callback={this.setEditing} db={this.db} />
-
-            {(this.state.mode === 'csvImport') ? <CSVTest /> : null}
+            <QRReaderCard callback={this.uuidScanned} />
+            <EditCard db={this.props.db} active={this.props.lastUUID} handleSubmit={this.commit} />
+            <QueueCard db={this.props.db} queue={this.props.queue} handleClear={this.clearQueue} handleCommitQueue={this.bulkCommit} select={this.uuidScanned} />
+            <BulkLabel handleSubmit={this.bulkApply} />
+            <BulkLocation handleSubmit={this.bulkApply} />
+            <BulkMakeModel handleSubmit={this.bulkApply} />
+            <DBDumper db={this.props.db} handleClick={this.uuidScanned} />
+            <HierarchialDumper db={this.props.db} handleClick={this.uuidScanned} />
           </Row>
         </Container>
       </div>
@@ -368,34 +455,13 @@ class App extends React.Component {
   }
 }
 
-const ModeSelector = ({mode, setMode}) => <Card style={{'width': '100%', 'margin': '10px'}} >
-  <Card.Header>Mode Selection</Card.Header>
-  <Card.Body>
-    <Card.Text>
-      <ButtonGroup>
-        {
-          [
-            {
-              text: 'Single Scan',
-              mode: 'default',
-            },
-            {
-              text: 'Editing',
-              mode: 'editing',
-            },
-            {
-              text: 'Bulk Scan',
-              mode: 'bulkScan',
-            },
-            {
-              text: 'CSV Import',
-              mode: 'csvImport',
-            }
-          ].map((val) => <Button variant='outline-primary' active={val.mode === mode} onClick={() => setMode(val.mode)} >{val.text}</Button>)
-        }
-      </ButtonGroup>
-    </Card.Text>
-  </Card.Body>
-</Card>;
-
-export default App;
+export default connect(
+  state => ({
+    lastUUID: state.lastScannedUUID,
+    queue: state.scannedUUIDqueue,
+    db: state.cachedDBentries,
+  }),
+  dispatch => ({
+    dispatch,
+  }),
+)(App);

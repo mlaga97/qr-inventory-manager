@@ -1,20 +1,115 @@
 // Library imports
-import { createStore, applyMiddleware, combineReducers } from 'redux';
+import { createStore, applyMiddleware, combineReducers, compose } from 'redux';
 import createSagaMiddleware from 'redux-saga';
-import { all } from 'redux-saga/effects';
+//import composeWithDevTools from 'redux-devtools-extension';
+import { all, takeEvery, takeLatest, call, put } from 'redux-saga/effects';
+
+import PouchDB from 'pouchdb';
+
+const db = new PouchDB('https://couchdb.mlaga97.space/uuid-inventory-db');
+const api = new PouchDB('https://couchdb.mlaga97.space/uuid-inventory-api');
+
+// TODO: USE THIS!
+const FixColumns = (i) => {
+  if (!Object.prototype.hasOwnProperty.call(i, 'label'))
+    i.label = '';
+
+  if (!Object.prototype.hasOwnProperty.call(i, 'labelPrinted'))
+    i.labelPrinted = false;
+
+  if (!Object.prototype.hasOwnProperty.call(i, 'location'))
+    i.location = '';
+
+  // TODO: Split in twain
+  if (!Object.prototype.hasOwnProperty.call(i, 'containerMakeModel'))
+    i.containerMakeModel = 'Unknown';
+
+  if (!Object.prototype.hasOwnProperty.call(i, 'comments'))
+    i.comments = 'Unknown';
+
+  return i;
+}
+
+function* testSaga() {
+  try {
+    const response = yield call(db.allDocs, {include_docs: true});
+
+    yield put({type: 'DB_UPDATE_SUCCEEDED', data: response});
+  } catch(e) {
+    yield put({type: 'DB_UPDATE_FAILED', error: e});
+  }
+}
+
+function* commitUUIDSaga(action) {
+  try {
+    const response = yield call(db.bulkDocs, action.data);
+    yield put({type: 'COMMIT_UUIDS_SUCCEEDED', data: response});
+    yield put({type: 'DB_UPDATE_REQUESTED'}); // TODO: Update Better
+  } catch(e) {
+    yield put({type: 'COMMIT_UUIDS_FAILED', error: e});
+  }
+}
+
+function* test() {
+  yield takeEvery('DB_UPDATE_REQUESTED', testSaga);
+  yield takeEvery('COMMIT_UUIDS_REQUESTED', commitUUIDSaga);
+}
 
 // Sagas
-const rootSaga = function* () {
-  yield all([
-  ]);
+function* rootSaga() {
+  yield all(
+    [
+      test(),
+    ]
+  );
 }
 
 // Reducers
 const rootReducer = combineReducers({
+  lastScannedUUID: function(state = null, action) {
+    switch (action.type) {
+      case 'UUID_SCANNED':
+        return action.data;
+      case 'CLEAR_UUID_QUEUE':
+        return null;
+      default:
+        return state;
+    }
+  },
+  scannedUUIDqueue: function(state = {}, action) {
+    switch (action.type) {
+      case 'UUID_SCANNED':
+        return Object.assign({}, state, {
+          [action.data]: new Date(),
+        });
+      case 'CLEAR_UUID_QUEUE':
+        return {};
+      default:
+        return state;
+    }
+  },
+  cachedDBentries: function(state = {}, action) {
+    switch (action.type) {
+      case 'DB_UPDATE_SUCCEEDED':
+        let newData = {};
+        action.data.rows.map((row) => newData[row.id] = row.doc);
+        return Object.assign({}, state, newData);
+      default:
+        return state;
+    }
+  }
 });
 
+const composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;
+
 const sagaMiddleware = createSagaMiddleware()
-const store = createStore(rootReducer, applyMiddleware(sagaMiddleware));
+const store = createStore(
+  rootReducer,
+  composeEnhancers(
+    applyMiddleware(sagaMiddleware),
+  )
+);
+
 sagaMiddleware.run(rootSaga);
 
 export default store;

@@ -1,10 +1,10 @@
 import React from 'react';
 import { connect } from 'react-redux';
 
-import {Navbar, Card, Container, Row, Form, Button, ButtonGroup, Table} from 'react-bootstrap';
+import { Navbar, Card, Container, Row, Form, Button, ButtonGroup, Table } from 'react-bootstrap';
 import CSVReader from 'react-csv-reader';
 import CsvDownloader from 'react-csv-downloader';
-
+import codenamize from '@codenamize/codenamize';
 import QRCodeReader from './QRCodeReader';
 
 import './App.css';
@@ -26,6 +26,7 @@ const ContainerList = ({rows, handleClick}) => <div>
     <thead>
       <tr>
         <th>UUID</th>
+        <th>Friendly</th>
         <th>Label</th>
         <th>Label Printed</th>
         <th>Location</th>
@@ -67,6 +68,7 @@ const QueueCard = ({db, queue, handleClear, handleCommitQueue, select}) => (
               Object.keys(queue).map((key) => (
                 <tr onClick={() => select(key)}>
                   <td>{key}</td>
+                  <td>{codenamize({seed: key, adjectiveCount: 2, maxItemChars: 4})}</td>
                   <td>{(db[key]) ? 'Yes' : 'No'}</td>
                 </tr>
               ))
@@ -92,6 +94,7 @@ const ContainerEntry = ({row, handleClick}) => {
 
   return <tr onClick={() => handleClick(row._id)}>
     <td>{row._id.substring(0,4) + '-' + row._id.substring(4,13)}</td>
+    <td>{codenamize(row._id)}</td>
     <td>{row.label}</td>
     <td>{(row.labelPrinted) ? 'Yes' : 'No'}</td>
     <td>{row.location}</td>
@@ -101,23 +104,70 @@ const ContainerEntry = ({row, handleClick}) => {
 
 const DBEntryHeader = () => (
   <tr>
-    <td>UUID</td>
+    <td>Friendly Name</td>
     <td>Label</td>
     <td>Location</td>
     <td>Container Make/Model</td>
-    <td>Label Printed</td>
   </tr>
 );
 
 const DBEntry = ({entry, handleClick}) => (
   <tr onClick={handleClick}>
-    <td>{entry._id}</td>
+    <td>{codenamize({seed: entry._id, adjectiveCount: 2, maxItemChars: 4})}</td>
     <td>{entry.label}</td>
     <td>{entry.location}</td>
     <td>{entry.containerMakeModel}</td>
-    <td>{entry.labelPrinted ? 'Yes' : 'No'}</td>
   </tr>
 );
+
+const formatDateTime = () => {
+  function pad(number, length) {
+      var str = '' + number;
+      while (str.length < length) {
+          str = '0' + str;
+      }
+      return str;
+  }
+
+  const d = new Date();
+
+  var yyyy = d.getFullYear().toString();
+  var MM = pad(d.getMonth() + 1,2);
+  var dd = pad(d.getDate(), 2);
+  var hh = pad(d.getHours(), 2);
+  var mm = pad(d.getMinutes(), 2)
+  var ss = pad(d.getSeconds(), 2)
+
+  return yyyy + MM + dd + '_' + hh + mm + ss;
+}
+
+const CSVUpload = ({handleSubmit}) => (
+  <CSVReader onFileLoaded={(data, fileinfo) => {
+    const msg = data.slice(1).map(entry => {
+
+      let result = {
+        _id: entry[0],
+      };
+
+      if (entry[1] !== '')
+        result['label'] = entry[1];
+      if (entry[2] !== '')
+        result['labelPrinted'] = entry[2];
+      if (entry[3] !== '')
+        result['location'] = entry[3];
+      if (entry[4] !== '')
+        result['containerMakeModel'] = entry[4];
+      if (entry[5] !== '')
+        result['comments'] = entry[5];
+      if (entry[6] !== '')
+        result['_rev'] = entry[6];
+
+      return result;
+    });
+
+    handleSubmit(msg)
+  }} />
+)
 
 const DBDumper = ({db, handleClick}) => (
   <Card className='hideOnMobile'>
@@ -125,7 +175,7 @@ const DBDumper = ({db, handleClick}) => (
     <Card.Body>
       <Card.Text>
         <CsvDownloader
-          filename='ahhh'
+          filename={'inventoryDump_'+formatDateTime()}
           datas={Object.keys(db).map(uuid => db[uuid])}
           columns={[
             {id: '_id', displayName: 'UUID'},
@@ -137,6 +187,7 @@ const DBDumper = ({db, handleClick}) => (
             {id: '_rev', displayName: 'Revision'},
           ]}
           text='DOWNLOAD'
+          separator='|'
         />
         <Table>
           <thead>
@@ -259,7 +310,7 @@ class EditCard extends React.Component {
 
     return (
       <Card>
-        <Card.Header>Editing {this.props.active}</Card.Header>
+        <Card.Header>Editing <b>{codenamize({seed: this.props.active, adjectiveCount: 2, maxItemChars: 4})}</b> ({this.props.active})</Card.Header>
         <Card.Body>
           <Card.Text>
             <Form onSubmit={this.handleSubmit}>
@@ -368,6 +419,7 @@ const MakeModelOptions = [
   'Tacklebox, Small Fixed - Tool Bench Hardware - 206348',
   'Cube Organizer Box - Home Depot 523607',
   '48x18 Wire Shelf - Home Depot 525441',
+  '24x48 Project Panel',
 ]
 
 
@@ -446,6 +498,7 @@ class App extends React.Component {
             <BulkLabel handleSubmit={this.bulkApply} />
             <BulkLocation handleSubmit={this.bulkApply} />
             <BulkMakeModel handleSubmit={this.bulkApply} />
+            <CSVUpload handleSubmit={this.commit} />
             <DBDumper db={this.props.db} handleClick={this.uuidScanned} />
             <HierarchialDumper db={this.props.db} handleClick={this.uuidScanned} />
           </Row>

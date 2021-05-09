@@ -6,16 +6,18 @@ import reportWebVitals from './reportWebVitals';
 import { Provider } from 'react-redux';
 import configureStore from './configureStore';
 
-import App from './App';
+import AuthRedirector from './components';
 
 import './index.css';
+import './App.css';
+import 'bootstrap/dist/css/bootstrap.min.css';
 
 const store = configureStore;
 
 ReactDOM.render(
   <React.StrictMode>
     <Provider store={store}>
-      <App />
+      <AuthRedirector />
     </Provider>
   </React.StrictMode>,
   document.getElementById('root')

@@ -50,9 +50,33 @@ function* commitUUIDSaga(action) {
   }
 }
 
+function* replaceUUIDSaga(action) {
+  try {
+    const { fromUUID, toUUID } = action.data;
+
+    const oldDoc = yield call(db.get, fromUUID);
+
+    // Create the new doc
+    let newDoc = {...oldDoc, _id: toUUID};
+    delete newDoc._rev;
+    //const update = '';
+    const update = yield call(db.put, newDoc);
+    const remove = yield call(db.remove, oldDoc);
+
+    console.log(update);
+    console.log(remove);
+
+    yield put({type: 'REPLACE_UUID_SUCCEEDED', data: {fromUUID, toUUID, update, remove}});
+    yield put({type: 'DB_UPDATE_REQUESTED'}); // TODO: Update Better
+  } catch(e) {
+    yield put({type: 'REPLACE_UUID_FAILED', error: e});
+  }
+}
+
 function* test() {
   yield takeEvery('DB_UPDATE_REQUESTED', testSaga);
   yield takeEvery('COMMIT_UUIDS_REQUESTED', commitUUIDSaga);
+  yield takeEvery('REPLACE_UUID_REQUESTED', replaceUUIDSaga);
 }
 
 // Sagas
@@ -94,6 +118,8 @@ const rootReducer = combineReducers({
         let newData = {};
         action.data.rows.map((row) => newData[row.id] = row.doc);
         return Object.assign({}, state, newData);
+      case 'REPLACE_UUID_SUCCEEDED':
+        return ({[action.data.fromUUID]: _, ...newState}) => ({newState});
       default:
         return state;
     }

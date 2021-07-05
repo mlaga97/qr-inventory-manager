@@ -6,8 +6,27 @@ import { all, takeEvery, takeLatest, call, put } from 'redux-saga/effects';
 
 import PouchDB from 'pouchdb';
 
-const db = new PouchDB('https://couchdb.mlaga97.space/uuid-inventory-db');
-const api = new PouchDB('https://couchdb.mlaga97.space/uuid-inventory-api');
+// TODO: This is probably a memory leak or something
+function getDB() {
+  const url = localStorage.getItem('dbURL');
+  const user = localStorage.getItem('dbUser');
+  const pass = localStorage.getItem('dbPass');
+
+  const db = new PouchDB(url, {
+    auth: {
+      username: user,
+      password: pass,
+    }
+  });
+
+  return db;
+}
+
+function getAPI() {
+  const api = new PouchDB('https://couchdb.mlaga97.space/uuid-inventory-api');
+
+  return api;
+}
 
 // TODO: USE THIS!
 const FixColumns = (i) => {
@@ -32,7 +51,7 @@ const FixColumns = (i) => {
 
 function* testSaga() {
   try {
-    const response = yield call(db.allDocs, {include_docs: true});
+    const response = yield call(getDB().allDocs, {include_docs: true});
 
     yield put({type: 'DB_UPDATE_SUCCEEDED', data: response});
   } catch(e) {
@@ -42,7 +61,7 @@ function* testSaga() {
 
 function* commitUUIDSaga(action) {
   try {
-    const response = yield call(db.bulkDocs, action.data);
+    const response = yield call(getDB().bulkDocs, action.data);
     yield put({type: 'COMMIT_UUIDS_SUCCEEDED', data: response});
     yield put({type: 'DB_UPDATE_REQUESTED'}); // TODO: Update Better
   } catch(e) {
@@ -54,14 +73,14 @@ function* replaceUUIDSaga(action) {
   try {
     const { fromUUID, toUUID } = action.data;
 
-    const oldDoc = yield call(db.get, fromUUID);
+    const oldDoc = yield call(getDB().get, fromUUID);
 
     // Create the new doc
     let newDoc = {...oldDoc, _id: toUUID};
     delete newDoc._rev;
     //const update = '';
-    const update = yield call(db.put, newDoc);
-    const remove = yield call(db.remove, oldDoc);
+    const update = yield call(getDB().put, newDoc);
+    const remove = yield call(getDB().remove, oldDoc);
 
     console.log(update);
     console.log(remove);
@@ -123,7 +142,21 @@ const rootReducer = combineReducers({
       default:
         return state;
     }
-  }
+  },
+  auth: function(state = true, action) {
+    switch (action.type) {
+      case 'DB_UPDATE_FAILED':
+        if (action.error.reason === "Name or password is incorrect.")
+          return false;
+
+        // TODO: Do something better here...
+        return false;
+      case 'DB_UPDATE_SUCCEEDED':
+        return true;
+      default:
+        return state;
+    }
+  },
 });
 
 const composeEnhancers = window.__REDUX_DEVTOOLS_EXTENSION_COMPOSE__ || compose;

@@ -227,6 +227,11 @@ class App extends React.Component {
     }));
   }
 
+  logOut = () => {
+    localStorage.setItem('dbPass', '');
+    this.props.dispatch({type: 'DB_UPDATE_REQUESTED'});
+  }
+
   render() {
     return (
       <div className="App">
@@ -251,6 +256,9 @@ class App extends React.Component {
                 </Nav.Item>
                 <Nav.Item>
                   <Nav.Link eventKey='lookup'>View All</Nav.Link>
+                </Nav.Item>
+                <Nav.Item>
+                  <Nav.Link eventKey='logout' onClick={this.logOut} >Log Out</Nav.Link>
                 </Nav.Item>
               </Nav>
             </Navbar.Collapse>
@@ -286,6 +294,9 @@ class App extends React.Component {
               <Tab.Pane eventKey='lookup'>
                 <DBDumperCard db={this.props.db} handleClick={this.uuidScanned} />
                 <HierarchialDumper db={this.props.db} handleClick={this.uuidScanned} commit={this.commit} />
+              </Tab.Pane>
+              <Tab.Pane eventKey='logout'>
+                Logging out...
               </Tab.Pane>
             </Tab.Content>
           </Container>

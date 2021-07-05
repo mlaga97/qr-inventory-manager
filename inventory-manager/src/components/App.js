@@ -1,12 +1,11 @@
+// Library Imports
 import React from 'react';
 import { connect } from 'react-redux';
-
-import { Tab, Nav, Navbar, Card, Container, Row, Form, Button, ButtonGroup, Table, InputGroup, FormControl } from 'react-bootstrap';
-import QRCodeReader from './QRCodeReader';
-import { BrowserRouter as Router, Switch, Route, Link } from 'react-router-dom'
+import { Tab, Nav, Navbar, Card, Container, Form, Button, ButtonGroup, Table, InputGroup, FormControl } from 'react-bootstrap';
 import codenamize from '@codenamize/codenamize';
 
 // Component Imports
+import QRCodeReader from './QRCodeReader';
 import { EditCard, BulkMakeModel } from './Renderers';
 import DBDumperCard from './DBDumperCard';
 import QRInput from './QRInput';
@@ -50,23 +49,6 @@ const QueueCard = ({db, queue, handleClear, handleCommitQueue, select}) => (
     </Card.Body>
   </Card>
 );
-
-const ContainerEntry = ({row, handleClick}) => {
-  if (!row)
-    return null;
-
-  if (!row._id)
-    return null;
-
-  return <tr onClick={() => handleClick(row._id)}>
-    <td>{row._id.substring(0,4) + '-' + row._id.substring(4,13)}</td>
-    <td>{codenamize(row._id)}</td>
-    <td>{row.label}</td>
-    <td>{(row.labelPrinted) ? 'Yes' : 'No'}</td>
-    <td>{row.location}</td>
-    <td>{row.containerMakeModel}</td>
-  </tr>;
-}
 
 const BulkLabel = ({handleSubmit}) => (
   <Card>
@@ -124,7 +106,7 @@ class BulkLocation extends React.Component {
 const buildTree = (location, entries, db) => {
   let output = {}
 
-  entries.map((entry) => {
+  entries.forEach((entry) => {
     if (entry[1] === location)
       output[entry[0]] = {
         contains: buildTree(entry[0], entries, db),
@@ -140,7 +122,7 @@ const HierarchialDumper = ({db, handleClick}) => {
   const rawLocations = Object.keys(db).map(uuid => db[uuid].location);
 
   let roots = {}
-  rawLocations.map(location => {
+  rawLocations.forEach(location => {
     if (!(location in db)) {
       roots[location] = buildTree(location, entries, db);
     }

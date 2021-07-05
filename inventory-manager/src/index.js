@@ -1,19 +1,20 @@
-// Library imports
+// Library Imports
 import React from 'react';
 import ReactDOM from 'react-dom';
-import reportWebVitals from './reportWebVitals';
 
-import { Provider } from 'react-redux';
-import configureStore from './configureStore';
-
-import AuthRedirector from './components';
-
+// Style Imports
 import './index.css';
-import './App.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
+// Component Imports
+import AuthRedirector from './components';
+
+// Redux Setup
+import { Provider } from 'react-redux';
+import configureStore from './configureStore';
 const store = configureStore;
 
+// Wrap the actual app so that we can forget about the above boilerplate
 ReactDOM.render(
   <React.StrictMode>
     <Provider store={store}>
@@ -22,8 +23,3 @@ ReactDOM.render(
   </React.StrictMode>,
   document.getElementById('root')
 );
-
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals();

@@ -1,4 +1,4 @@
-// Library imports
+// Library Imports
 import fileDownload from 'js-file-download';
 import csvStringify from 'csv-stringify';
 import csvParse from 'csv-parse';
@@ -24,7 +24,7 @@ export const formatDateTime = () => {
   return yyyy + MM + dd + '_' + hh + mm + ss;
 }
 
-// TODO: Unit tests
+// TODO: Unit tests?
 export const toDBFormat = (item) => {
   let result = {};
 
@@ -47,7 +47,7 @@ export const normalizeCard = (item) => {
     }
 
     // Fix FALSE
-    if (result && result.labelPrinted && result.labelPrinted == 'FALSE') {
+    if (result && result.labelPrinted && result.labelPrinted === 'FALSE') {
       result[key] = false;
     }
   });
@@ -68,7 +68,6 @@ export const normalizeCards = (items) => {
 export const toJSONFile = (items) => fileDownload(JSON.stringify(normalizeCards(items), null, 2), 'dbDump_' + formatDateTime() + '.json');
 
 export const toCSVFile = (items) => {
-  let result = '';
   const normalized = normalizeCards(items);
 
   csvStringify(Object.keys(normalized).map(uuid => normalized[uuid]), {

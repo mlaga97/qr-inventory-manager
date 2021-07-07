@@ -116,11 +116,11 @@ class App extends React.Component {
     return (
       <div className="App">
         <Tab.Container activeKey={this.state.key} defaultActiveKey='home'>
-          <Navbar bg='dark' variant='dark'>
-            <Navbar.Brand>
+          <Navbar bg='dark' variant='dark' expand='lg'>
+            <Navbar.Brand onClick={() => this.setState({key: 'home'})} >
               <img src='/logo.svg' width='30' height='30' alt='Logo' />{' '} Inventory Manager
             </Navbar.Brand>
-
+            <Navbar.Toggle />
             <Navbar.Collapse>
               <Nav onSelect={this.handleSelect} >
                 <Nav.Item>

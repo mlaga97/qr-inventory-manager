@@ -29,7 +29,14 @@ const rootReducer = combineReducers({
     switch (action.type) {
       case 'DB_UPDATE_SUCCEEDED':
         let newData = {};
-        action.data.rows.map((row) => newData[row.id] = row.doc);
+        action.data.rows.map((row) => {
+          newData[row.id] = row.doc;
+
+          // TODO: Not this anymore
+          if (newData[row.id].labelPrinted && newData[row.id].labelPrinted === 'FALSE') {
+            newData[row.id].labelPrinted = false;
+          }
+        });
         return Object.assign({}, state, newData);
       case 'REPLACE_UUID_SUCCEEDED':
         return ({[action.data.fromUUID]: _, ...newState}) => ({newState});

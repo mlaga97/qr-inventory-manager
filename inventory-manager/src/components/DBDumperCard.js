@@ -11,6 +11,7 @@ const DBEntryHeader = () => (
     <td>Label</td>
     <td>Location</td>
     <td>Container Make/Model</td>
+    <td>Label Printed</td>
   </tr>
 );
 
@@ -20,6 +21,9 @@ const DBEntry = ({entry, handleClick}) => (
     <td>{entry.label}</td>
     <td>{entry.location}</td>
     <td>{entry.containerMakeModel}</td>
+    <td>
+      <input type='checkbox' checked={entry.labelPrinted} />
+    </td>
   </tr>
 );
 
@@ -64,9 +68,7 @@ const DBDumperCard = ({db, handleClick, commit}) => (
             <DBEntryHeader />
           </thead>
           <tbody>
-            {
-              Object.keys(db).map(key => <DBEntry entry={db[key]} handleClick={() => handleClick(key)} />)
-            }
+            { Object.keys(db).map(key => <DBEntry entry={db[key]} handleClick={() => handleClick(key)} />) }
           </tbody>
         </Table>
       </Card.Text>

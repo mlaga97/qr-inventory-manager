@@ -5,7 +5,6 @@ import { connect } from 'react-redux';
 import App from './App';
 import LoginPage from './LoginPage'
 
-// TODO: Handle login
 class AuthRedirector extends React.Component {
   render = () => {
     if (this.props.auth) {

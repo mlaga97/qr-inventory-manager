@@ -5,103 +5,14 @@ import { Tab, Nav, Navbar, Card, Container, Form, Button, ButtonGroup, Table, In
 import codenamize from '@codenamize/codenamize';
 
 // Component Imports
-import QRCodeReader from './QRCodeReader';
-import { EditCard, BulkMakeModel } from './Renderers';
+import QRCodeReaderCard from './QRCodeReaderCard';
+import QueueCard from './QueueCard';
+import { BulkLabel, BulkLocation, BulkMakeModel, BulkDelete } from './BulkModify';
+import EditCard from './EditCard';
 import DBDumperCard from './DBDumperCard';
 import QRInput from './QRInput';
 import RelabelCard from './RelabelCard';
 
-const QRReaderCard = (props) => <>
-  <Card>
-    <Card.Header>Cam View</Card.Header>
-    <Card.Body>
-      <Card.Text>
-        <QRCodeReader callback={props.callback} />
-      </Card.Text>
-    </Card.Body>
-  </Card>
-</>
-
-const QueueCard = ({db, queue, handleClear, handleCommitQueue, select}) => (
-  <Card>
-    <Card.Header>UUID Queue</Card.Header>
-    <Card.Body>
-      <Card.Text>
-        <Table>
-          <tbody>
-            {
-              Object.keys(queue).map((key) => (
-                <tr onClick={() => select(key)}>
-                  <td>{key}</td>
-                  <td>{codenamize({seed: key, adjectiveCount: 2, maxItemChars: 4})}</td>
-                  <td>{(db[key]) ? 'Yes' : 'No'}</td>
-                </tr>
-              ))
-            }
-          </tbody>
-        </Table>
-
-        <ButtonGroup>
-          <Button variant='outline-primary' onClick={handleCommitQueue}>Commit Queue</Button>
-          <Button variant='outline-danger' onClick={handleClear}>Clear Queue</Button>
-        </ButtonGroup>
-      </Card.Text>
-    </Card.Body>
-  </Card>
-);
-
-const BulkLabel = ({handleSubmit}) => (
-  <Card>
-    <Card.Header>Bulk Apply</Card.Header>
-    <Card.Body>
-      <Card.Text>
-        <Form onSubmit={(e) => {e.preventDefault(); console.log(e.target[0]); handleSubmit(e.target[0].name, e.target[0].value);}} >
-          <Form.Group controlId='label'>
-            <Form.Label>Label</Form.Label>
-            <Form.Control name='label' />
-          </Form.Group>
-          <Button variant='primary' type='submit'>Submit</Button>
-        </Form>
-      </Card.Text>
-    </Card.Body>
-  </Card>
-);
-
-class BulkLocation extends React.Component {
-  constructor(props) {
-    super(props)
-    this.state = {
-      location: '',
-    }
-  }
-
-  handleSubmit = (e) => {
-    e.preventDefault();
-    this.props.handleSubmit('location', this.state.location);
-  }
-
-  render = () => (
-    <Card>
-      <Card.Header>Bulk Apply</Card.Header>
-      <Card.Body>
-        <Card.Text>
-          <Form onSubmit={this.handleSubmit} >
-            <InputGroup className='mb-3'>
-              <InputGroup.Prepend>
-                <InputGroup.Text>Location</InputGroup.Text>
-              </InputGroup.Prepend>
-              <FormControl controlId='location' name='location' value={this.state.location} onChange={e => this.setState({location: e.target.value})} />
-              <InputGroup.Append>
-                <QRInput value={this.state.location} onChange={uuid => this.setState({location: uuid})} />
-              </InputGroup.Append>
-            </InputGroup>
-            <Button variant='primary' type='submit'>Submit</Button>
-          </Form>
-        </Card.Text>
-      </Card.Body>
-    </Card>
-  )
-}
 
 const buildTree = (location, entries, db) => {
   let output = {}
@@ -145,38 +56,19 @@ const MainPage = ({
   bulkApply,
 }) => (
   <>
-    <EditCard db={db} active={lastUUID} handleSubmit={commit} />
-    <QueueCard db={db} queue={queue} handleClear={clearQueue} handleCommitQueue={bulkCommit} select={uuidScanned} />
-    <BulkLabel handleSubmit={bulkApply} />
-    <BulkLocation handleSubmit={bulkApply} />
-    <BulkMakeModel handleSubmit={bulkApply} />
   </>
 )
 
-const BulkDelete = ({db, queue, handleSubmit}) => {
-  const test = () => {
-    handleSubmit(
-      Object.keys(queue).map((uuid) => {
-        if (uuid in db) {
-          return {_id: uuid, _rev: db[uuid]._rev, _deleted: true};
-        } else {
-          return null;
-        }
-      }).filter(a => a)
-    )
-  }
-
-  return (
-    <Card>
-      <Card.Header>Bulk Delete</Card.Header>
-      <Card.Body>
-        <Card.Text>
-          <Button onClick={test}>Delete</Button>
-        </Card.Text>
-      </Card.Body>
-    </Card>
-  );
-};
+const JSONViewerCard = ({data}) => <>
+  <Card>
+    <Card.Header>JSON Viewer</Card.Header>
+    <Card.Body>
+      <Card.Text>
+        <code style={{'white-space': 'pre-wrap', 'display': 'block', 'text-align': 'left'}}>{JSON.stringify(data, null, 2)}</code>
+      </Card.Text>
+    </Card.Body>
+  </Card>
+</>;
 
 class App extends React.Component {
   constructor(props) {
@@ -215,29 +107,36 @@ class App extends React.Component {
   }
 
   render() {
+    if (!this.props.db)
+      return null;
+
+    let { db, lastUUID, queue } = this.props;
+    let { uuidScanned, commit, clearQueue, bulkCommit, bulkApply } = this;
+
     return (
       <div className="App">
         <Tab.Container activeKey={this.state.key} defaultActiveKey='home'>
           <Navbar bg='dark' variant='dark'>
             <Navbar.Brand>
-              <img
-                src='/logo.svg'
-                width='30'
-                height='30'
-                alt='Logo'
-              />{' '}
-              Inventory Manager
+              <img src='/logo.svg' width='30' height='30' alt='Logo' />{' '} Inventory Manager
             </Navbar.Brand>
+
             <Navbar.Collapse>
               <Nav onSelect={this.handleSelect} >
                 <Nav.Item>
                   <Nav.Link eventKey='home'>Home</Nav.Link>
                 </Nav.Item>
                 <Nav.Item>
+                  <Nav.Link eventKey='bulk'>Bulk</Nav.Link>
+                </Nav.Item>
+                <Nav.Item>
                   <Nav.Link eventKey='relabel'>Relabel</Nav.Link>
                 </Nav.Item>
                 <Nav.Item>
-                  <Nav.Link eventKey='lookup'>View All</Nav.Link>
+                  <Nav.Link eventKey='lookup'>Search</Nav.Link>
+                </Nav.Item>
+                <Nav.Item>
+                  <Nav.Link eventKey='other'>Other</Nav.Link>
                 </Nav.Item>
                 <Nav.Item>
                   <Nav.Link eventKey='logout' onClick={this.logOut} >Log Out</Nav.Link>
@@ -247,35 +146,28 @@ class App extends React.Component {
           </Navbar>
 
           <Container>
-            <QRReaderCard callback={this.uuidScanned} />
+            <QRCodeReaderCard callback={this.uuidScanned} />
             <Tab.Content>
               <Tab.Pane eventKey='home'>
-                <MainPage
-                  db={this.props.db}
-                  uuidScanned={this.uuidScanned}
-                  lastUUID={this.props.lastUUID}
-                  commit={this.commit}
-                  queue={this.props.queue}
-                  clearQueue={this.clearQueue}
-                  bulkCommit={this.bulkCommit}
-                  bulkApply={this.bulkApply}
-                />
+                <EditCard db={db} active={lastUUID} handleSubmit={commit} />
+                <QueueCard db={db} queue={queue} handleClear={clearQueue} handleCommitQueue={bulkCommit} select={uuidScanned} />
+              </Tab.Pane>
+              <Tab.Pane eventKey='bulk'>
+                <QueueCard db={db} queue={queue} handleClear={clearQueue} handleCommitQueue={bulkCommit} select={uuidScanned} />
+                <BulkLabel handleSubmit={bulkApply} />
+                <BulkLocation handleSubmit={bulkApply} />
+                <BulkMakeModel handleSubmit={bulkApply} />
+                <BulkDelete db={db} queue={queue} handleSubmit={commit} />
               </Tab.Pane>
               <Tab.Pane eventKey='relabel'>
                 <RelabelCard />
-                <BulkDelete db={this.props.db} queue={this.props.queue} handleSubmit={this.commit} />
-                <Card>
-                  <Card.Header>JSON Viewer</Card.Header>
-                  <Card.Body>
-                    <Card.Text>
-                      <code style={{'white-space': 'pre-wrap', 'display': 'block', 'text-align': 'left'}}>{JSON.stringify(this.props.db[this.props.lastUUID], null, 2)}</code>
-                    </Card.Text>
-                  </Card.Body>
-                </Card>
               </Tab.Pane>
               <Tab.Pane eventKey='lookup'>
-                <DBDumperCard db={this.props.db} handleClick={this.uuidScanned} />
                 <HierarchialDumper db={this.props.db} handleClick={this.uuidScanned} commit={this.commit} />
+                <DBDumperCard db={this.props.db} handleClick={this.uuidScanned} />
+              </Tab.Pane>
+              <Tab.Pane eventKey='other'>
+                <JSONViewerCard data={db[lastUUID]} />
               </Tab.Pane>
               <Tab.Pane eventKey='logout'>
                 Logging out...

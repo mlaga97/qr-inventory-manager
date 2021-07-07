@@ -1,26 +1,13 @@
-// Library imports
+// Library Imports
 import React from 'react';
 import { Card, Form, ButtonGroup, Button, InputGroup, FormControl } from 'react-bootstrap';
 import codenamize from '@codenamize/codenamize';
 import QRInput from './QRInput';
 
-const MakeModelOptions = [
-  'Unknown',
-  '6-Quart Shoebox - Sterilite - 18518036',
-  'Shipping Tote - Global Industrial - 257814',
-  'Shipping Tote, FRC Branded - Orbis - FP243',
-  'Tacklebox, Fixed - Darice - 1157-11',
-  'Tacklebox, Adjustable - Plano - 3750 (Old)',
-  'Tacklebox, Adjustable - Plano - 3750 (New)',
-  'Tacklebox, Adjustable - UPC 035061512001',
-  'Tacklebox, Small Fixed - Tool Bench Hardware - 206348',
-  'Cube Organizer Box - Home Depot 523607',
-  'Small Packout Insert',
-  '48x18 Wire Shelf - Home Depot 525441',
-  '24x48 Project Panel',
-]
+// Config Imports
+import MakeModelOptions from './MakeModelOptions';
 
-export class EditCard extends React.Component {
+class EditCard extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -125,7 +112,14 @@ export class EditCard extends React.Component {
 
   render() {
     if (!this.state.active)
-      return null;
+      return <>
+        <Card>
+          <Card.Header>Editor</Card.Header>
+          <Card.Body>
+            <Card.Text>Please scan a QR code or select a label from the search tab to get started!</Card.Text>
+          </Card.Body>
+        </Card>
+      </>;
 
     if (!this.state.data)
       return null;
@@ -142,7 +136,7 @@ export class EditCard extends React.Component {
               </Form.Group>
 
               <Form.Group controlId='labelPrinted'>
-                <Form.Check name='labelPrinted' label='Label Printed' value={this.state.data.labelPrinted} onChange={this.handleChange} />
+                <Form.Check name='labelPrinted' label='Label Printed' checked={this.state.data.labelPrinted} onChange={this.handleChange} />
               </Form.Group>
 
               <InputGroup className='mb-3'>
@@ -163,6 +157,11 @@ export class EditCard extends React.Component {
                   }
                 </Form.Control>
               </Form.Group>
+
+              <Form.Group controlId='comment'>
+                <Form.Label>Notes</Form.Label>
+                <Form.Control name='comment' as='textarea' rows={5} value={this.state.data.comment} onChange={this.handleChange} />
+              </Form.Group>
               
               <ButtonGroup>
                 {
@@ -179,24 +178,4 @@ export class EditCard extends React.Component {
   }
 }
 
-export const BulkMakeModel = ({handleSubmit}) => (
-  <Card>
-    <Card.Header>Bulk Apply</Card.Header>
-    <Card.Body>
-      <Card.Text>
-        <Form onSubmit={(e) => {e.preventDefault(); console.log(e.target[0]); handleSubmit(e.target[0].name, e.target[0].value);}} >
-          <Form.Group controlId='containerMakeModel'>
-            <Form.Label>Make and Model</Form.Label>
-            <Form.Control name='containerMakeModel' as='select'>
-              {
-                MakeModelOptions.map(option => <option>{option}</option>)
-              }
-            </Form.Control>
-          </Form.Group>
-          <Button variant='primary' type='submit'>Submit</Button>
-        </Form>
-      </Card.Text>
-    </Card.Body>
-  </Card>
-);
-
+export default EditCard;

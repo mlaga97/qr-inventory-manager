@@ -1,9 +1,9 @@
 <?php
 
-$db_password = 'changeme'
-
 // Start user session
 session_start();
+
+$db_password = 'changeme';
 
 // Ensure that the api can be used externally
 // TODO: Figure out what the proper thing to do here is, as opposed to just adding things until it works.
@@ -53,6 +53,7 @@ $router->map('GET', '/info', function() {
 ################################################################################
 
 function scanTag($uuid) {
+  global $db_password;
   $db = pg_connect('host=db user=postgres password=' . $db_password);
     
   $result = pg_query_params($db, 'INSERT INTO tagmetadata (uuid, lastscanned) VALUES ($1, NOW()) ON CONFLICT (uuid) DO UPDATE SET lastscanned = NOW()', [$uuid]);
@@ -87,6 +88,7 @@ function parseTagLine($line) {
 
 // TODO: Join metadata?
 function getTag($id) {
+  global $db_password;
   $db = pg_connect('host=db user=postgres password=' . $db_password);
 
   $result = pg_query_params($db, 'SELECT * FROM tags WHERE uuid = $1', array($id));
@@ -99,6 +101,7 @@ function getTag($id) {
 
 // TODO: Join metadata?
 function getAllTags() {
+  global $db_password;
   $db = pg_connect('host=db user=postgres password=' . $db_password);
 
   //$result = pg_query($db, 'SELECT * FROM tags');
@@ -161,6 +164,7 @@ function updateTag($uuid, $data) {
   
   $query = 'INSERT INTO tags VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT (uuid) DO UPDATE SET containertype=$7, label=$8, parent=$9, comment=$10, labelprinted=$11';
 
+  global $db_password;
   $db = pg_connect('host=db user=postgres password=' . $db_password);
 
   $result = pg_query_params($db, $query, [$uuid, $containertype, $label, $parent, $comment, $labelprinted, $containertype, $label, $parent, $comment, $labelprinted]);
@@ -195,6 +199,7 @@ function replaceTag($old, $new) {
   $query4 = 'UPDATE tagmetadata SET uuid = $1 WHERE uuid = $2;';
   $query5 = 'COMMIT;';
 
+  global $db_password;
   $db = pg_connect('host=db user=postgres password=' . $db_password);
 
   pg_query($db, $query1);

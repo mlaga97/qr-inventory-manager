@@ -1,5 +1,6 @@
 // Library imports
 import { all, takeEvery, call, put } from 'redux-saga/effects';
+import axios from 'axios';
 import PouchDB from 'pouchdb';
 
 // TODO: Actually *perform* normalization
@@ -98,9 +99,85 @@ function* replaceUUIDSaga(action) {
   }
 }
 
+function* getTags(action) {
+  try {
+    const response = yield call(() => axios.get('https://inventory.mlaga97.space/api/v1/tags', {headers: {'api-key': localStorage.getItem('dbPass')}}));
+
+    yield put({
+      type: 'GET_TAGS_SUCCEEDED',
+      data: response.data,
+    });
+  } catch (e) {
+    console.log(e);
+    yield put({
+      type: 'GET_TAGS_FAILED',
+      error: e,
+    });
+  }
+}
+
+function* postTags(action) {
+  try {
+    const response = yield call(() => axios.put('https://inventory.mlaga97.space/api/v1/tags', action.data, {
+      headers: {
+        'api-key': localStorage.getItem('dbPass'),
+      }
+    }));
+
+    yield put({type: 'GET_TAGS_REQUESTED'});
+    yield put({type: 'POST_TAGS_SUCCEEDED'});
+  } catch (e) {
+    yield put({
+      type: 'POST_TAGS_FAILED',
+      error: e,
+    });
+  }
+}
+
+function* scanTag(action) {
+  try {
+    // TODO: Re-enable scanning API
+    const response = yield call(() => axios.put('https://inventory.mlaga97.space/api/v1/scan/' + action.data, null, {
+      headers: {
+        'api-key': localStorage.getItem('dbPass'),
+      }
+    }));
+
+    yield put({type: 'UUID_SCAN_SUCCEEDED'});
+  } catch (e) {
+    yield put({
+      type: 'UUID_SCAN_FAILED',
+      error: e,
+    });
+  }
+}
+
+function* replaceTag(action) {
+  try {
+    const response = yield call(() => axios.put('https://inventory.mlaga97.space/api/v1/replace/' + action.data.fromUUID, action.data.toUUID, {
+      headers: {
+        'api-key': localStorage.getItem('dbPass'),
+      }
+    }));
+
+    yield put({type: 'GET_TAGS_REQUESTED'});
+    yield put({type: 'REPLACE_TAG_SUCCEEDED'});
+  } catch (e) {
+    yield put({
+      type: 'REPLACE_TAG_FAILED',
+      error: e,
+    });
+  }
+}
+
 // Root Saga
 export default function* rootSaga() {
-  yield takeEvery('DB_UPDATE_REQUESTED', dbUpdateSaga);
-  yield takeEvery('COMMIT_UUIDS_REQUESTED', commitUUIDSaga);
-  yield takeEvery('REPLACE_UUID_REQUESTED', replaceUUIDSaga);
+  //yield takeEvery('DB_UPDATE_REQUESTED', dbUpdateSaga);
+  //yield takeEvery('COMMIT_UUIDS_REQUESTED', commitUUIDSaga);
+  //yield takeEvery('REPLACE_UUID_REQUESTED', replaceUUIDSaga);
+
+  yield takeEvery('UUID_SCANNED', scanTag);
+  yield takeEvery('GET_TAGS_REQUESTED', getTags);
+  yield takeEvery('POST_TAGS_REQUESTED', postTags);
+  //yield takeEvery('REPLACE_TAG_REQUESTED', replaceTag);
 }

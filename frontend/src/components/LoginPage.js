@@ -43,7 +43,7 @@ class LoginPage extends React.Component {
                     localStorage.setItem('dbUser', user)
                     localStorage.setItem('dbPass', pass)
 
-                    this.props.dispatch({type: 'DB_UPDATE_REQUESTED'});
+                    this.props.dispatch({type: 'GET_TAGS_REQUESTED'});
                   }}>
                     <Form.Group controlId='url'>
                       <Form.Label>Database URL</Form.Label>

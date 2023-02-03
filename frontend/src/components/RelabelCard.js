@@ -26,12 +26,30 @@ class RelabelCard extends React.Component {
 
     // Submit
     this.props.dispatch({
-      type: 'REPLACE_UUID_REQUESTED',
+      type: 'POST_TAGS_REQUESTED',
+      data: {
+        [this.state.toUUID]: this.props.tags[this.state.fromUUID],
+        [this.state.fromUUID]: {
+          'containertype': '',
+          'label': '',
+          'parent': '',
+          'comment': '',
+          'labelprinted': false,
+        },
+      },
+    });
+
+    // Submit
+    // TODO: This way
+    /*
+    this.props.dispatch({
+      type: 'REPLACE_TAG_REQUESTED',
       data: {
         toUUID: this.state.toUUID,
         fromUUID: this.state.fromUUID,
       },
     })
+    */
 
     this.setState({
       fromUUID: '',
@@ -40,46 +58,45 @@ class RelabelCard extends React.Component {
   }
 
   render() {
-    console.log(this.state);
-    return (
-      <Card>
-        <Card.Header>Re-Label</Card.Header>
-        <Card.Body>
-          <Card.Text>
-            <Form onSubmit={this.handleSubmit}>
-              <InputGroup className='mb-3'>
-                <InputGroup.Prepend>
-                  <InputGroup.Text>Old</InputGroup.Text>
-                </InputGroup.Prepend>
-                <FormControl name='label' value={this.state.fromUUID} />
-                <InputGroup.Append>
-                  <QRInput value={this.state.fromUUID} onChange={uuid => this.setState({fromUUID: uuid})} />
-                </InputGroup.Append>
-              </InputGroup>
+    return <Card>
+      <Card.Header>Re-Label</Card.Header>
+      <Card.Body>
+        <Card.Text>
+          <Form onSubmit={this.handleSubmit}>
+            <InputGroup className='mb-3'>
+              <InputGroup.Prepend>
+                <InputGroup.Text>Old</InputGroup.Text>
+              </InputGroup.Prepend>
+              <FormControl name='label' value={this.state.fromUUID} />
+              <InputGroup.Append>
+                <QRInput value={this.state.fromUUID} onChange={uuid => this.setState({fromUUID: uuid})} />
+              </InputGroup.Append>
+            </InputGroup>
 
-              <InputGroup className='mb-3'>
-                <InputGroup.Prepend>
-                  <InputGroup.Text>New</InputGroup.Text>
-                </InputGroup.Prepend>
-                <FormControl name='label' value={this.state.toUUID} />
-                <InputGroup.Append>
-                  <QRInput value={this.state.toUUID} onChange={uuid => this.setState({toUUID: uuid})} />
-                </InputGroup.Append>
-              </InputGroup>
+            <InputGroup className='mb-3'>
+              <InputGroup.Prepend>
+                <InputGroup.Text>New</InputGroup.Text>
+              </InputGroup.Prepend>
+              <FormControl name='label' value={this.state.toUUID} />
+              <InputGroup.Append>
+                <QRInput value={this.state.toUUID} onChange={uuid => this.setState({toUUID: uuid})} />
+              </InputGroup.Append>
+            </InputGroup>
 
-              <ButtonGroup>
-                <Button variant='danger' type='submit'>Submit</Button>
-              </ButtonGroup>
-            </Form>
-          </Card.Text>
-        </Card.Body>
-      </Card>
-    );
+            <ButtonGroup>
+              <Button variant='danger' type='submit'>Submit</Button>
+            </ButtonGroup>
+          </Form>
+        </Card.Text>
+      </Card.Body>
+    </Card>;
   }
 }
 
 export default connect(
-  state => ({}),
+  state => ({
+    tags: state.tags,
+  }),
   dispatch => ({
     dispatch,
   }),

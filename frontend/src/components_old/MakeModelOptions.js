@@ -1,6 +1,5 @@
 // TODO: This should *not* be hardcoded
 const MakeModelOptions = [
-  '',
   'Unknown',
   '6-Quart Shoebox - Sterilite - 18518036',
   'Shipping Tote - Global Industrial - 257814',

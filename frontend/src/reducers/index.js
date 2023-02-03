@@ -5,7 +5,21 @@ import { combineReducers } from 'redux';
 const rootReducer = combineReducers({
   lastScannedUUID: function(state = null, action) {
     switch (action.type) {
-      case 'UUID_SCANNED':
+      //case 'UUID_SCANNED':
+      //  return action.data;
+      case 'UUID_SELECTED':
+        return action.data;
+      case 'CLEAR_UUID_QUEUE':
+        return null;
+      default:
+        return state;
+    }
+  },
+  lastSelectedUUID: function(state = null, action) {
+    switch (action.type) {
+      //case 'UUID_SCANNED':
+      //  return action.data;
+      case 'UUID_SELECTED':
         return action.data;
       case 'CLEAR_UUID_QUEUE':
         return null;
@@ -15,7 +29,7 @@ const rootReducer = combineReducers({
   },
   scannedUUIDqueue: function(state = {}, action) {
     switch (action.type) {
-      case 'UUID_SCANNED':
+      case 'UUID_SELECTED':
         return Object.assign({}, state, {
           [action.data]: new Date(),
         });
@@ -25,34 +39,24 @@ const rootReducer = combineReducers({
         return state;
     }
   },
-  cachedDBentries: function(state = {}, action) {
+  tags: function(state = {}, action) {
     switch (action.type) {
-      case 'DB_UPDATE_SUCCEEDED':
-        let newData = {};
-        action.data.rows.map((row) => {
-          newData[row.id] = row.doc;
-
-          // TODO: Not this anymore
-          if (newData[row.id].labelPrinted && newData[row.id].labelPrinted === 'FALSE') {
-            newData[row.id].labelPrinted = false;
-          }
-        });
-        return Object.assign({}, state, newData);
-      case 'REPLACE_UUID_SUCCEEDED':
-        return ({[action.data.fromUUID]: _, ...newState}) => ({newState});
+      case 'GET_TAGS_SUCCEEDED':
+        return action.data;
+      //case 'REPLACE_UUID_SUCCEEDED':
+      //  return ({[action.data.fromUUID]: _, ...newState}) => ({newState});
       default:
         return state;
     }
   },
   auth: function(state = true, action) {
     switch (action.type) {
-      case 'DB_UPDATE_FAILED':
-        if (action.error.reason === "Name or password is incorrect.")
+      case 'GET_TAGS_FAILED':
+        if (action.error.message === 'Request failed with status code 403')
           return false;
 
-        // TODO: Do something better here...
-        return false;
-      case 'DB_UPDATE_SUCCEEDED':
+        // TODO: Better...
+      case 'GET_TAGS_SUCCEEDED':
         return true;
       default:
         return state;

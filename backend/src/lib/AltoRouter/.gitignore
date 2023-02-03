@@ -1,0 +1,8 @@
+.idea
+_site
+Gemfile
+Gemfile.lock
+build
+vendor
+composer.lock
+phpunit.xml

@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, Table, Button, ButtonGroup } from 'react-bootstrap';
 import codenamize from '@codenamize/codenamize';
-import { toCSVFile, toJSONFile, fileToRecords, humanizeDuration } from '../utils';
+import { toCSVFile, toJSONFile, fileToRecords } from '../utils';
 import { FileDrop } from 'react-file-drop';
 
 const DBEntryHeader = () => (
@@ -12,32 +12,18 @@ const DBEntryHeader = () => (
     <td>Location</td>
     <td>Container Make/Model</td>
     <td>Label Printed</td>
-    <td>Last Scanned</td>
   </tr>
 );
 
-const renderTime = (time) => {
-  if (time) {
-    const then = (new Date(time)).getTime();
-    const now = Date.now() + new Date().getTimezoneOffset()*60*1000;
-    const duration = now - then;
-
-    return humanizeDuration(duration) + ' ago';
-  }
-
-  return '';
-}
-
-const DBEntry = ({id, entry, handleClick}) => (
+const DBEntry = ({entry, handleClick}) => (
   <tr onClick={handleClick}>
-    <td>{codenamize({seed: id, adjectiveCount: 2, maxItemChars: 4})}</td>
+    <td>{codenamize({seed: entry._id, adjectiveCount: 2, maxItemChars: 4})}</td>
     <td>{entry.label}</td>
-    <td>{entry.parent}</td>
-    <td>{entry.containertype}</td>
+    <td>{entry.location}</td>
+    <td>{entry.containerMakeModel}</td>
     <td>
-      <input type='checkbox' checked={entry.labelprinted} />
-        </td>
-    <td>{renderTime(entry.lastscanned)}</td>
+      <input type='checkbox' checked={entry.labelPrinted} />
+    </td>
   </tr>
 );
 
@@ -66,14 +52,14 @@ class FileDropper extends React.Component {
   }
 }
 
-const DBDumperCard = ({tags, handleClick, commit}) => (
+const DBDumperCard = ({db, handleClick, commit}) => (
   <Card className='hideOnMobile'>
     <Card.Header>Database Dump</Card.Header>
     <Card.Body>
       <Card.Text>
         <ButtonGroup>
-          {/*<Button variant='outline-primary' onClick={() => toCSVFile(tags)}>Download CSV</Button>*/}
-          <Button variant='outline-primary' onClick={() => toJSONFile(tags)}>Download JSON</Button>
+          <Button variant='outline-primary' onClick={() => toCSVFile(db)}>Download CSV</Button>
+          <Button variant='outline-primary' onClick={() => toJSONFile(db)}>Download JSON</Button>
         </ButtonGroup>
 
         <FileDropper commit={commit} />
@@ -83,7 +69,7 @@ const DBDumperCard = ({tags, handleClick, commit}) => (
             <DBEntryHeader />
           </thead>
           <tbody>
-            { Object.keys(tags).map(key => <DBEntry id={key} entry={tags[key]} handleClick={() => handleClick(key)} />) }
+            { Object.keys(db).map(key => <DBEntry entry={db[key]} handleClick={() => handleClick(key)} />) }
           </tbody>
         </Table>
       </Card.Text>

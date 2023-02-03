@@ -1,0 +1,4 @@
+backend/src/static
+*.swp
+*.swo
+db_data

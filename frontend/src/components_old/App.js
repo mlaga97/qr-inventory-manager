@@ -6,20 +6,58 @@ import codenamize from '@codenamize/codenamize';
 
 // Component Imports
 import QRCodeReaderCard from './QRCodeReaderCard';
-import RenderCard from './RenderCard';
 import QueueCard from './QueueCard';
-import RelabelCard from './RelabelCard';
-import QRInput from './QRInput';
-import MakeModelOptions from './MakeModelOptions';
+import { BulkLabel, BulkLocation, BulkMakeModel, BulkDelete } from './BulkModify';
+import EditCard from './EditCard';
 import DBDumperCard from './DBDumperCard';
-import BulkLabel from './BulkLabel';
-import BulkLocation from './BulkLocation';
-import BulkMakeModel from './BulkMakeModel';
-import BulkDelete from './BulkDelete';
+import QRInput from './QRInput';
+import RelabelCard from './RelabelCard';
 
 
+const buildTree = (location, entries, db) => {
+  let output = {}
 
-const emptyUUID = {};
+  entries.forEach((entry) => {
+    if (entry[1] === location)
+      output[entry[0]] = {
+        contains: buildTree(entry[0], entries, db),
+        ...db[entry[0]]
+      }
+  })
+
+  return output;
+}
+
+const HierarchialDumper = ({db, handleClick}) => {
+  const entries = Object.keys(db).map(uuid => [uuid, db[uuid].location]);
+  const rawLocations = Object.keys(db).map(uuid => db[uuid].location);
+
+  let roots = {}
+  rawLocations.forEach(location => {
+    if (!(location in db)) {
+      roots[location] = buildTree(location, entries, db);
+    }
+  });
+
+  return null;
+}
+
+const emptyUUID = {
+};
+
+const MainPage = ({
+  db,
+  uuidScanned,
+  lastUUID,
+  commit,
+  queue,
+  clearQueue,
+  bulkCommit,
+  bulkApply,
+}) => (
+  <>
+  </>
+)
 
 const JSONViewerCard = ({data}) => <>
   <Card>
@@ -46,22 +84,15 @@ class App extends React.Component {
   }
 
   componentDidMount() {
-    this.requestDBUpdate();
+    this.props.dispatch({type: 'DB_UPDATE_REQUESTED'});
   }
 
-  //bulkCommit = () => this.props.dispatch({type: 'COMMIT_UUID_QUEUE'});
-
+  uuidScanned = (uuid) => this.props.dispatch({type: 'UUID_SCANNED', data: uuid});
   clearQueue = () => this.props.dispatch({type: 'CLEAR_UUID_QUEUE'});
-  requestDBUpdate = () => this.props.dispatch({type: 'GET_TAGS_REQUESTED'});
-  uuidScanned = (uuid) => {
-    if (uuid != this.props.lastUUID) {
-      console.log('Scan!');
-      this.props.dispatch({type: 'UUID_SCANNED', data: uuid});
-    }
-    this.props.dispatch({type: 'UUID_SELECTED', data: uuid});
-  };
-  uuidSelected = (uuid) => this.props.dispatch({type: 'UUID_SELECTED', data: uuid});
-  postTags = (data) => this.props.dispatch({type: 'POST_TAGS_REQUESTED', data: data});
+  bulkCommit = () => this.props.dispatch({type: 'COMMIT_UUID_QUEUE'});
+  commit = (data) => this.props.dispatch({type: 'COMMIT_UUIDS_REQUESTED', data: data})
+
+  postTags = (data) => this.props.dispatch({type: 'NEW_POST_TAGS_REQUESTED', data: data});
 
   bulkApply = (key, value) => {
     this.commit(Object.keys(this.props.queue).map((a) => {
@@ -74,15 +105,15 @@ class App extends React.Component {
 
   logOut = () => {
     localStorage.setItem('dbPass', '');
-    this.requestDBUpdate();
+    this.props.dispatch({type: 'DB_UPDATE_REQUESTED'});
   }
 
   render() {
-    if (!this.props.tags)
+    if (!this.props.db)
       return null;
 
-    let { tags, lastUUID, queue } = this.props;
-    //let { uuidScanned, commit, clearQueue, bulkCommit, bulkApply } = this;
+    let { db, lastUUID, queue } = this.props;
+    let { uuidScanned, commit, clearQueue, bulkCommit, bulkApply } = this;
 
     return (
       <div className="App">
@@ -120,25 +151,25 @@ class App extends React.Component {
             <QRCodeReaderCard callback={this.uuidScanned} />
             <Tab.Content>
               <Tab.Pane eventKey='home'>
-                <RenderCard tags={tags} active={lastUUID} handleSubmit={this.postTags} />
-                <QueueCard tags={tags} queue={queue} handleClear={this.clearQueue} handleSelect={this.uuidSelected} />
+                <EditCard db={db} active={lastUUID} handleSubmit={commit} />
+                <QueueCard db={db} queue={queue} handleClear={clearQueue} handleCommitQueue={bulkCommit} select={uuidScanned} />
               </Tab.Pane>
               <Tab.Pane eventKey='bulk'>
-                <BulkLabel />
-                <BulkLocation />
-                <BulkMakeModel />
-                <BulkDelete />
-                <QueueCard tags={tags} queue={queue} handleClear={this.clearQueue} handleSelect={this.uuidSelected} />
+                <QueueCard db={db} queue={queue} handleClear={clearQueue} handleCommitQueue={bulkCommit} select={uuidScanned} />
+                <BulkLabel handleSubmit={bulkApply} />
+                <BulkLocation handleSubmit={bulkApply} />
+                <BulkMakeModel handleSubmit={bulkApply} />
+                <BulkDelete db={db} queue={queue} handleSubmit={commit} />
               </Tab.Pane>
               <Tab.Pane eventKey='relabel'>
                 <RelabelCard />
               </Tab.Pane>
-                <Tab.Pane eventKey='lookup'>
-                <DBDumperCard tags={tags} handleClick={this.uuidSelected} handleSubmit={this.postTags} />
-                <JSONViewerCard data={tags} />
+              <Tab.Pane eventKey='lookup'>
+                <HierarchialDumper db={this.props.db} handleClick={this.uuidScanned} commit={this.commit} />
+                <DBDumperCard db={this.props.db} handleClick={this.uuidScanned} commit={this.postTags} />
               </Tab.Pane>
               <Tab.Pane eventKey='other'>
-                <JSONViewerCard data={tags[lastUUID]} />
+                <JSONViewerCard data={db[lastUUID]} />
               </Tab.Pane>
               <Tab.Pane eventKey='logout'>
                 Logging out...
@@ -153,71 +184,11 @@ class App extends React.Component {
 
 export default connect(
   state => ({
-    tags: state.tags,
     lastUUID: state.lastScannedUUID,
     queue: state.scannedUUIDqueue,
+    db: state.cachedDBentries,
   }),
   dispatch => ({
     dispatch,
   }),
 )(App);
-
-
-
-
-
-/*
-const buildTree = (location, entries, db) => {
-  let output = {}
-
-  entries.forEach((entry) => {
-    if (entry[1] === location)
-      output[entry[0]] = {
-        contains: buildTree(entry[0], entries, db),
-        ...db[entry[0]]
-      }
-  })
-
-  return output;
-}
-
-const HierarchialDumper = ({db, handleClick}) => {
-  const entries = Object.keys(db).map(uuid => [uuid, db[uuid].location]);
-  const rawLocations = Object.keys(db).map(uuid => db[uuid].location);
-
-  let roots = {}
-  rawLocations.forEach(location => {
-    if (!(location in db)) {
-      roots[location] = buildTree(location, entries, db);
-    }
-  });
-
-  return null;
-}
-
-const MainPage = ({
-  db,
-  uuidScanned,
-  lastUUID,
-  commit,
-  queue,
-  clearQueue,
-  bulkCommit,
-  bulkApply,
-}) => (
-  <>
-  </>
-)
-
-const JSONViewerCard = ({data}) => <>
-  <Card>
-    <Card.Header>JSON Viewer</Card.Header>
-    <Card.Body>
-      <Card.Text>
-        <code style={{'white-space': 'pre-wrap', 'display': 'block', 'text-align': 'left'}}>{JSON.stringify(data, null, 2)}</code>
-      </Card.Text>
-    </Card.Body>
-  </Card>
-  </>;
-*/
-

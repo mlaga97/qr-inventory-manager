@@ -77,7 +77,7 @@ class QRInput extends React.Component {
 
 export default connect(
   state => ({
-    uuid: state.lastSelectedUUID,
+    uuid: state.lastScannedUUID,
     history: state.scannedUUIDqueue,
   }),
   dispatch => ({
